@@ -110,6 +110,7 @@ const state = {
   pieceKey: null,
   logRevision: -1,
   bridge: { lastSent: 0, lastPayload: '', lastFullSend: 0, erro: null, enviando: false },
+  terrainVersion: -1,
   wasRunning: false,
 };
 
@@ -701,9 +702,27 @@ el.boardPreview.addEventListener('pointerdown', (event) => {
   // Clicar de novo na mesma casa com o mesmo pincel limpa — evita ter que ir
   // até a paleta só para desfazer.
   const current = board.get(cell.row, cell.col);
-  board.set(cell.row, cell.col, current === state.terrain ? 'normal' : state.terrain);
+  const tipo = current === state.terrain ? 'normal' : state.terrain;
+  board.set(cell.row, cell.col, tipo);
   publishBoard();
+  enviarPincelada({ row: cell.row, col: cell.col, type: tipo });
 });
+
+/** Manda uma pincelada para o servidor. A tela local já mudou; isto propaga. */
+function enviarPincelada(corpo) {
+  if (!settings.bridgeOn) return;
+  fetch(`${settings.bridgeUrl}/api/terrain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+  })
+    .then((r) => r.json())
+    .then(aplicarTerrenoDoServidor)
+    .catch((error) => {
+      state.bridge.erro = String(error.message || error);
+      renderBridgeStatus();
+    });
+}
 
 el.boardPreview.addEventListener('pointermove', (event) => {
   if (!state.simulating || !simulation.dragging) return;
@@ -718,6 +737,7 @@ for (const type of ['pointerup', 'pointercancel']) {
 el.clearBoard.addEventListener('click', () => {
   board.clear();
   publishBoard();
+  enviarPincelada({ terrain: {} });
 });
 
 /* ------------------------------------------------------------ calibração */
@@ -945,10 +965,11 @@ function publishToBridge(now) {
     headers: { 'Content-Type': 'application/json' },
     body: payload,
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       state.bridge.lastPayload = chave;
       state.bridge.erro = null;
+      aplicarTerrenoDoServidor(await response.json().catch(() => null));
     })
     .catch((error) => {
       state.bridge.erro = String(error.message || error);
@@ -957,6 +978,21 @@ function publishToBridge(now) {
       state.bridge.enviando = false;
       renderBridgeStatus();
     });
+}
+
+/**
+ * O servidor é dono do mapa: aqui só aplicamos o que ele confirma. É o que
+ * permite pintar pelo painel na mesa e ver a mudança aparecer no console e na
+ * projeção sem ninguém sincronizar nada à mão.
+ */
+function aplicarTerrenoDoServidor(data) {
+  if (!data || typeof data.terrainVersion !== 'number') return;
+  if (data.terrainVersion === state.terrainVersion) return;
+
+  state.terrainVersion = data.terrainVersion;
+  board.fromJSON(data.terrain || {});
+  board.save();
+  publishBoard(); // a projeção local acompanha
 }
 
 function renderBridgeStatus() {

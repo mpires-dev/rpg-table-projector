@@ -40,6 +40,17 @@ const MIME = {
 
 let boardState = { updatedAt: 0, pieces: [] };
 let lastDiag = null;
+
+/**
+ * O mapa mora aqui, e não no navegador, porque agora há dois pintores: o
+ * console e o painel na mesa. Quem chegar depois pega o mapa de quem já pintou.
+ * `terrainVersion` é como cada cliente sabe que precisa se atualizar sem
+ * comparar o mapa inteiro.
+ */
+let terrain = {};
+let terrainVersion = 0;
+
+const TERRENOS = new Set(['normal', 'difficult', 'water', 'lava', 'wall', 'objective']);
 /** Últimos avisos do navegador do mestre — erros de JS e sinais de vida. */
 const clientLog = [];
 
@@ -56,8 +67,12 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+function estadoCompleto() {
+  return { ...boardState, terrain, terrainVersion };
+}
+
 function broadcast() {
-  const frame = `data: ${JSON.stringify(boardState)}\n\n`;
+  const frame = `data: ${JSON.stringify(estadoCompleto())}\n\n`;
   for (const listener of listeners) {
     // Um cliente morto não pode derrubar a publicação dos outros.
     try {
@@ -92,6 +107,42 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (pathname === '/api/terrain' && request.method === 'POST') {
+    try {
+      const parsed = JSON.parse(await readBody(request));
+
+      if (parsed && typeof parsed.terrain === 'object' && parsed.terrain !== null) {
+        // Mapa inteiro (o console sincronizando, ou "limpar mapa").
+        terrain = {};
+        for (const [chave, tipo] of Object.entries(parsed.terrain)) {
+          if (/^[0-5],[0-5]$/.test(chave) && TERRENOS.has(tipo) && tipo !== 'normal') {
+            terrain[chave] = tipo;
+          }
+        }
+      } else {
+        // Uma casa só (uma pincelada, do console ou do painel).
+        const { row, col, type } = parsed || {};
+        if (!Number.isInteger(row) || !Number.isInteger(col) ||
+            row < 0 || row > 5 || col < 0 || col > 5 || !TERRENOS.has(type)) {
+          throw new Error('casa ou terreno invalido');
+        }
+        const chave = `${row},${col}`;
+        if (type === 'normal') delete terrain[chave];
+        else terrain[chave] = type;
+      }
+
+      terrainVersion++;
+      broadcast();
+      console.log(`[mapa] v${terrainVersion}, ${Object.keys(terrain).length} casa(s) pintada(s)`);
+      response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: true, terrainVersion, terrain }));
+    } catch (error) {
+      response.writeHead(400, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: false, erro: String(error.message || error) }));
+    }
+    return true;
+  }
+
   if (pathname === '/api/log' && request.method === 'POST') {
     try {
       const parsed = JSON.parse(await readBody(request, 8 * 1024));
@@ -123,6 +174,8 @@ async function handleApi(request, response, pathname) {
           ? Math.round((Date.now() - boardState.updatedAt) / 1000)
           : null,
         camera: lastDiag,
+        terrenoVersao: terrainVersion,
+        casasPintadas: Object.keys(terrain).length,
         avisos: clientLog,
       })
     );
@@ -131,7 +184,7 @@ async function handleApi(request, response, pathname) {
 
   if (pathname === '/api/state' && request.method === 'GET') {
     response.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' });
-    response.end(JSON.stringify(boardState));
+    response.end(JSON.stringify(estadoCompleto()));
     return true;
   }
 
@@ -148,7 +201,11 @@ async function handleApi(request, response, pathname) {
       broadcast();
       console.log(`[estado] ${boardState.pieces.length} peca(s)`, JSON.stringify(lastDiag || {}));
       response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
-      response.end(JSON.stringify({ ok: true, pieces: boardState.pieces.length }));
+      // A resposta devolve o mapa: é assim que o console descobre uma pincelada
+      // dada no painel, sem precisar de um canal só para isso.
+      response.end(
+        JSON.stringify({ ok: true, pieces: boardState.pieces.length, terrainVersion, terrain })
+      );
     } catch (error) {
       response.writeHead(400, { ...CORS, 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ ok: false, erro: String(error.message || error) }));
@@ -166,7 +223,7 @@ async function handleApi(request, response, pathname) {
       'X-Accel-Buffering': 'no',
     });
     response.write('retry: 3000\n\n');
-    response.write(`data: ${JSON.stringify(boardState)}\n\n`);
+    response.write(`data: ${JSON.stringify(estadoCompleto())}\n\n`);
 
     listeners.add(response);
     // Comentário SSE a cada 15s: mantém a conexão viva no proxy do Railway e
