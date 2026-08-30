@@ -232,4 +232,50 @@ markActive();
 
 window.addEventListener('beforeunload', () => bus.close());
 
+/* --------------------------------------------- escuta do servidor */
+
+/**
+ * O canal local só alcança abas do mesmo navegador. Escutando o servidor, esta
+ * projeção funciona numa máquina diferente da do console — que é o arranjo real
+ * da mesa, com o projetor num computador e o mestre noutro.
+ *
+ * O canal local continua sendo a fonte preferida quando existe: ele entrega a
+ * 30 Hz, enquanto o servidor só fala quando algo muda.
+ */
+let calibracaoAplicada = -1;
+
+function ouvirServidor() {
+  if (typeof EventSource === 'undefined') return;
+  const fonte = new EventSource('/api/events');
+
+  fonte.addEventListener('message', (event) => {
+    let dados;
+    try {
+      dados = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+
+    if (
+      typeof dados.calibrationVersion === 'number' &&
+      dados.calibrationVersion !== calibracaoAplicada
+    ) {
+      calibracaoAplicada = dados.calibrationVersion;
+      state.matrix = dados.calibration || null;
+    }
+
+    if (dados.terrain) board.fromJSON(dados.terrain);
+
+    // Só assume as peças quando o canal local está calado há um tempo.
+    const semCanalLocal = performance.now() - state.lastMessage > 2500;
+    if (semCanalLocal && Array.isArray(dados.pieces)) {
+      state.tracks = dados.pieces;
+      state.identity = false;
+      state.lastMessage = performance.now();
+    }
+  });
+}
+
+ouvirServidor();
+
 requestAnimationFrame(loop);
