@@ -39,6 +39,7 @@ const MIME = {
    ------------------------------------------------------------------------ */
 
 let boardState = { updatedAt: 0, pieces: [] };
+let lastDiag = null;
 /** @type {Set<import('node:http').ServerResponse>} */
 const listeners = new Set();
 
@@ -99,6 +100,7 @@ async function handleApi(request, response, pathname) {
         segundosDesdeAPublicacao: boardState.updatedAt
           ? Math.round((Date.now() - boardState.updatedAt) / 1000)
           : null,
+        camera: lastDiag,
       })
     );
     return true;
@@ -117,6 +119,9 @@ async function handleApi(request, response, pathname) {
         updatedAt: Date.now(),
         pieces: Array.isArray(parsed?.pieces) ? parsed.pieces.slice(0, 24) : [],
       };
+      // O diagnóstico não vai para o painel: ele fica no /api/health, para
+      // olhar de longe o que a câmera do outro lado está vendo.
+      lastDiag = parsed?.diag ?? null;
       broadcast();
       response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ ok: true, pieces: boardState.pieces.length }));

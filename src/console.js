@@ -865,6 +865,24 @@ function publishToBridge(now) {
   if (now - state.bridge.lastSent < BRIDGE_MIN_INTERVAL_MS) return;
 
   const cells = state.scene.cells;
+
+  // Vai junto um retrato do que a câmera está vendo. Sem isto, "não aparece
+  // nada" só pode ser diagnosticado por quem está na frente da máquina.
+  const diag = {
+    camera: camera.isRunning,
+    simulando: state.simulating,
+    modo: vision.mode,
+    lidos: vision.tracker.lastRawCount,
+    foraDoElenco: vision.tracker.rejectedCount,
+    confirmados: state.tracks.length,
+    ids: vision.lastMarkers.map((m) => m.id),
+    soElenco: settings.onlyKnown,
+    hamming: settings.maxHamming,
+    confirmacao: settings.confirmFrames,
+    fps: Math.round(state.fps),
+    deteccaoMs: Math.round(vision.detectMs),
+  };
+
   const pieces = state.tracks.map((track) => {
     const entry = roster.get(track.id);
     const cell = cells.get(track.id);
@@ -880,9 +898,14 @@ function publishToBridge(now) {
     };
   });
 
-  // Só sai da mesa o que mudou: peça parada não gera tráfego.
-  const payload = JSON.stringify({ pieces });
-  if (payload === state.bridge.lastPayload) return;
+  // Só sai da mesa o que mudou — mas de dois em dois segundos mandamos assim
+  // mesmo, para o diagnóstico do outro lado não envelhecer.
+  const chave = JSON.stringify(pieces);
+  const vencido = now - (state.bridge.lastFullSend || 0) > 2000;
+  if (chave === state.bridge.lastPayload && !vencido) return;
+
+  const payload = JSON.stringify({ pieces, diag });
+  state.bridge.lastFullSend = now;
 
   state.bridge.enviando = true;
   state.bridge.lastSent = now;
@@ -894,7 +917,7 @@ function publishToBridge(now) {
   })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      state.bridge.lastPayload = payload;
+      state.bridge.lastPayload = chave;
       state.bridge.erro = null;
     })
     .catch((error) => {
