@@ -3,7 +3,7 @@ import { Roster } from './roster.js';
 import { Viewport } from './viewport.js';
 import { drawProjectorScene } from './projectorScene.js';
 import { IDENTITY } from './homography.js';
-import { Board, boardLayout, drawBoard } from './board.js';
+import { Board, BOARD_SIZE, boardLayout, cellCenter, drawBoard, highlightCell } from './board.js';
 import { DEFAULT_RULES } from './rules.js';
 import { loadHomography } from './calibration.js';
 
@@ -139,12 +139,18 @@ function drawCalibration(now)
     ctx.clearRect(0, 0, view.width, view.height);
     drawBoard(ctx, view, board, layout, { labels: true, time: now });
 
-    const cantos = [
-      { x: layout.x, y: layout.y },
-      { x: layout.x + layout.side, y: layout.y },
-      { x: layout.x + layout.side, y: layout.y + layout.side },
-      { x: layout.x, y: layout.y + layout.side },
+    // Os alvos ficam no centro das casas de canto: é ali que a peça pousa.
+    const ultima = BOARD_SIZE - 1;
+    const casas = [
+      { row: 0, col: 0 },
+      { row: 0, col: ultima },
+      { row: ultima, col: ultima },
+      { row: ultima, col: 0 },
     ];
+    for (const casa of casas) {
+      highlightCell(ctx, view, casa, layout, '#ffc857', 0.2);
+    }
+    const cantos = casas.map((casa) => cellCenter(casa.row, casa.col, layout));
 
     ctx.save();
     for (const canto of cantos) {
@@ -171,7 +177,7 @@ function drawCalibration(now)
     ctx.fillStyle = '#ffffff';
     ctx.font = `600 ${20 * scale}px system-ui, sans-serif`;
     ctx.fillText(
-      'Ponha uma peça sobre cada círculo',
+      'Ponha uma peça no centro de cada casa acesa',
       view.width / 2,
       view.toScreenY(layout.y + layout.side) + 60 * scale
     );

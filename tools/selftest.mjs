@@ -11,6 +11,7 @@ import { projectTrack, targetsInProjectorSpace } from '../src/calibration.js';
 import { FrameDetector } from '../src/detectCore.js';
 import { MarkerTracker } from '../src/tracker.js';
 import { boardLayout, cellAt, cellLabel, cellCenter, cellDistance, BOARD_SIZE } from '../src/board.js';
+import { IDENTITY } from '../src/homography.js';
 
 const DICTIONARY = 'ARUCO_MIP_36h12';
 const MODULE_PX = 20; // pixels por módulo do marcador
@@ -399,6 +400,66 @@ function checkMultiplos() {
 }
 
 failures += checkMultiplos();
+
+// --- calibração pelas quatro peças de canto ---------------------------------
+
+function checkCalibracao() {
+  const aspect = 1080 / 1920;
+  const layout = boardLayout(aspect);
+  const ultima = BOARD_SIZE - 1;
+
+  // A mesa vista de esguelha: o lado de cima aparece menor que o de baixo.
+  const naCamera = [
+    { x: 0.32, y: 0.26 },  // peça em A1
+    { x: 0.70, y: 0.26 },  // F1
+    { x: 0.84, y: 0.62 },  // F6
+    { x: 0.18, y: 0.62 },  // A6
+  ];
+
+  const destino = [
+    cellCenter(0, 0, layout),
+    cellCenter(0, ultima, layout),
+    cellCenter(ultima, ultima, layout),
+    cellCenter(ultima, 0, layout),
+  ];
+
+  const h = computeHomography(naCamera, destino);
+  if (!h) {
+    console.error('✗ calibração: homografia não fechou');
+    return 1;
+  }
+
+  // Cada peça de canto tem que cair na SUA casa — o erro que aparecia era o
+  // tabuleiro esticado meia casa para fora, por mirar nos vértices.
+  const esperadas = ['A1', 'F1', 'F6', 'A6'];
+  let falhas = 0;
+  naCamera.forEach((ponto, i) => {
+    const p = applyHomography(h, ponto.x, ponto.y);
+    const casa = cellLabel(cellAt(p.x, p.y, layout));
+    if (casa !== esperadas[i]) {
+      console.error(`✗ calibração: peça de ${esperadas[i]} caiu em ${casa}`);
+      falhas++;
+    }
+  });
+  if (!falhas) console.log('✓ calibração: as quatro peças de canto caem nas suas casas');
+
+  // E o centro da mesa tem que virar o centro do tabuleiro.
+  const centroCamera = naCamera.reduce(
+    (a, p) => ({ x: a.x + p.x / 4, y: a.y + p.y / 4 }), { x: 0, y: 0 }
+  );
+  const meio = applyHomography(h, centroCamera.x, centroCamera.y);
+  const casaMeio = cellAt(meio.x, meio.y, layout);
+  const ok = casaMeio && casaMeio.row >= 2 && casaMeio.row <= 3 && casaMeio.col >= 2 && casaMeio.col <= 3;
+  if (!ok) {
+    console.error(`✗ calibração: centro da mesa caiu em ${cellLabel(casaMeio)}`);
+    falhas++;
+  } else {
+    console.log(`✓ calibração: o centro da mesa cai no miolo (${cellLabel(casaMeio)})`);
+  }
+  return falhas ? 1 : 0;
+}
+
+failures += checkCalibracao();
 
 console.log(failures ? `\n${failures} falha(s)` : '\nTudo OK.');
 process.exit(failures ? 1 : 0);

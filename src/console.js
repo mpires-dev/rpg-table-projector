@@ -2,7 +2,15 @@ import '@fontsource-variable/inter/wght.css';
 
 import { Vision } from './vision.js';
 import { Roster, FACTIONS } from './roster.js';
-import { Board, TERRAINS, boardLayout, cellAt, cellCenter, cellLabel } from './board.js';
+import {
+  Board,
+  BOARD_SIZE,
+  TERRAINS,
+  boardLayout,
+  cellAt,
+  cellCenter,
+  cellLabel,
+} from './board.js';
 import { Viewport } from './viewport.js';
 import { Bus } from './bus.js';
 import { EventLog } from './events.js';
@@ -845,13 +853,19 @@ function concluirCalibracao() {
 
   const cantos = ordenarCantos(medias);
 
-  // Os quatro vértices do tabuleiro, no espaço da projeção.
+  /*
+   * O destino é o CENTRO das quatro casas de canto — A1, F1, F6, A6 — e não os
+   * vértices do tabuleiro. A peça fica dentro da casa, então é o centro dela
+   * que corresponde ao centro da casa; mirar nos vértices esticava o tabuleiro
+   * meia casa para fora em cada lado.
+   */
   const layout = boardLayout(state.projector.aspect);
+  const ultima = BOARD_SIZE - 1;
   const destino = [
-    { x: layout.x, y: layout.y },
-    { x: layout.x + layout.side, y: layout.y },
-    { x: layout.x + layout.side, y: layout.y + layout.side },
-    { x: layout.x, y: layout.y + layout.side },
+    cellCenter(0, 0, layout),           // A1, superior-esquerda
+    cellCenter(0, ultima, layout),      // F1, superior-direita
+    cellCenter(ultima, ultima, layout), // F6, inferior-direita
+    cellCenter(ultima, 0, layout),      // A6, inferior-esquerda
   ];
 
   const matrix = computeHomography(cantos, destino);
@@ -882,7 +896,7 @@ function renderCalibBanner() {
   const feito = state.calib.amostras.length;
   el.calibBanner.textContent =
     feito === 0
-      ? 'Calibrando — ponha uma peça em cada canto da área do tabuleiro'
+      ? 'Calibrando — ponha uma peça no centro de A1, F1, A6 e F6'
       : `Calibrando — segurando as quatro peças (${Math.round((feito / CALIB_AMOSTRAS) * 100)}%)`;
 }
 
