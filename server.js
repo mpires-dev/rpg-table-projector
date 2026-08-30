@@ -84,6 +84,26 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (pathname === '/api/health' && request.method === 'GET') {
+    // Diagnóstico da apresentação: diz se o painel chegou até aqui, sem
+    // precisar de cabo serial preso na placa.
+    response.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(
+      JSON.stringify({
+        ok: true,
+        ouvintesSSE: listeners.size,
+        pecas: boardState.pieces.length,
+        ultimaPublicacao: boardState.updatedAt
+          ? new Date(boardState.updatedAt).toISOString()
+          : null,
+        segundosDesdeAPublicacao: boardState.updatedAt
+          ? Math.round((Date.now() - boardState.updatedAt) / 1000)
+          : null,
+      })
+    );
+    return true;
+  }
+
   if (pathname === '/api/state' && request.method === 'GET') {
     response.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' });
     response.end(JSON.stringify(boardState));

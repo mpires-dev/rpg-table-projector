@@ -24,7 +24,7 @@ const DEFAULT_SETTINGS = {
   threatCells: 1,
   moveRadius: 2, // em células
   showMoveRadius: false, // ligado, quatro círculos de 2 casas cobrem o mapa inteiro
-  bridgeOn: false,
+  bridgeOn: true,
   bridgeUrl: 'https://combat-maps.up.railway.app',
 };
 
