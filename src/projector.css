@@ -1,0 +1,107 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  /* Preto de verdade: no projetor, todo pixel aceso vira luz na mesa. */
+  background: #000;
+  color: #eef2fb;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+body.idle {
+  cursor: none;
+}
+
+#projection {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hud {
+  position: fixed;
+  left: 16px;
+  bottom: 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.hud.hidden {
+  opacity: 0;
+}
+
+.hud .line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hud .muted {
+  color: #8593ad;
+}
+
+.hud .keys b {
+  color: #cdd8ee;
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #55607a;
+}
+
+.dot.live {
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+}
+
+.dot.calib {
+  background: #ffc857;
+  box-shadow: 0 0 8px #ffc857;
+}
+
+.waiting {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, #10182c, #000 70%);
+}
+
+.waiting[hidden] {
+  display: none;
+}
+
+.waiting h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.waiting p {
+  margin: 0;
+  max-width: 460px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #b8c4dc;
+}
+
+.waiting .muted {
+  color: #6f7c96;
+  font-size: 13px;
+}

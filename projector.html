@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title>Projeção — Mesa AR</title>
+    <link rel="stylesheet" href="/src/projector.css" />
+  </head>
+  <body>
+    <canvas id="projection"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="line">
+        <span class="dot" id="dot"></span>
+        <span id="status">aguardando a janela de controle…</span>
+      </div>
+      <div class="line muted" id="calibNote"></div>
+      <div class="line muted keys">
+        <b>F</b> tela cheia · <b>H</b> esconde este aviso
+      </div>
+    </div>
+
+    <div class="waiting" id="waiting">
+      <h1>Janela de projeção</h1>
+      <p>
+        Arraste esta janela para o monitor do projetor e aperte <b>F</b> para tela cheia.
+        Mantenha a janela de controle aberta — é ela que enxerga a mesa.
+      </p>
+      <p class="muted">Nada chegou pelo canal ainda.</p>
+    </div>
+
+    <script type="module" src="/src/projector.js"></script>
+  </body>
+</html>

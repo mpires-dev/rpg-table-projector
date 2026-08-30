@@ -1,0 +1,982 @@
+/**
+ * Console do mestre — claro, "papel e tinta".
+ *
+ * A interface é clara porque o mestre lê texto denso nela a noite toda; os dois
+ * retângulos escuros (visor da câmera e tabuleiro) são o material bruto do jogo,
+ * não cromo — mantê-los escuros dentro do papel é o que separa "o que a mesa é"
+ * de "o que eu controlo".
+ */
+
+:root {
+  /* superfícies */
+  --paper: #f4f1ea;
+  --surface: #fffefa;
+  --sunken: #eae5db;
+  --ink-well: #16150f; /* visor e tabuleiro: o material do jogo */
+
+  /* tinta */
+  --ink: #1b1913;
+  --ink-2: #4c463b;
+  --ink-3: #7b7365;
+
+  /* traços */
+  --line: #e2dccf;
+  --line-strong: #cec5b3;
+
+  /* acentos */
+  --accent: #2a4fb0;
+  --accent-ink: #22409a;
+  --accent-wash: #e8ecfa;
+  --good: #2b6b45;
+  --warn: #9a6410;
+  --danger: #a83228;
+  --danger-wash: #fbe9e7;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  /* sombra com deslocamento e desfoque: profundidade, não halo */
+  --shadow: 0 1px 2px rgba(27, 25, 19, 0.05), 0 10px 24px -16px rgba(27, 25, 19, 0.28);
+
+  --sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --serif: 'Fraunces Variable', Georgia, serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+a {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  stroke-width: 1.6;
+}
+
+/* ============================== barra superior ============================ */
+
+.topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 24;
+}
+
+.wordmark span {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.control:hover {
+  background: var(--sunken);
+  border-color: var(--ink-3);
+}
+
+.control .label {
+  font-weight: 550;
+  font-size: 13px;
+}
+
+.control .state {
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-left: 9px;
+  border-left: 1px solid var(--line);
+}
+
+.control[aria-pressed='true'] {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.control[aria-pressed='true'] .state {
+  color: var(--accent-ink);
+  border-left-color: rgba(42, 79, 176, 0.28);
+}
+
+.control:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.control:disabled:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.readout {
+  margin: 0 0 0 auto;
+  display: flex;
+  gap: 22px;
+}
+
+.readout div {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.readout dt {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.readout dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================= layout ================================= */
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr) 360px;
+  grid-template-areas: 'eye board side';
+  gap: 14px;
+  padding: 14px;
+}
+
+.area-eye {
+  grid-area: eye;
+  overflow-y: auto;
+}
+.area-board {
+  grid-area: board;
+}
+.area-side {
+  grid-area: side;
+  overflow-y: auto;
+}
+
+.layout > section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+/* ================================= painéis ================================ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-height: 0;
+}
+
+.panel-grow {
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.panel-head h2 .icon {
+  color: var(--ink-3);
+}
+
+.chip {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--sunken);
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.counter {
+  margin-left: auto;
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================== botões ================================ */
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--sunken);
+  border-color: var(--ink-3);
+}
+
+.button .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3);
+}
+
+.button[aria-pressed='true'] {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.button[aria-pressed='true'] .icon {
+  color: var(--accent-ink);
+}
+
+.button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.button:disabled:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.button.quiet {
+  border-color: transparent;
+  background: none;
+  color: var(--ink-3);
+}
+
+.button.quiet:hover {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.icon-button {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ================================== visor ================================= */
+
+.viewfinder {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--ink-well);
+  border: 1px solid var(--line-strong);
+}
+
+.viewfinder video,
+.viewfinder canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.viewfinder video {
+  object-fit: cover;
+}
+
+.viewfinder video.mirrored {
+  transform: scaleX(-1);
+}
+
+.viewfinder-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 20px;
+  text-align: center;
+  background: var(--ink-well);
+  color: #a49b8a;
+  font-size: 12px;
+}
+
+.viewfinder-empty p {
+  margin: 0;
+  max-width: 30ch;
+  justify-self: center;
+}
+
+.viewfinder-empty .headline {
+  color: #f0ece2;
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.viewfinder-empty.error .headline {
+  color: #ffb3aa;
+}
+
+.viewfinder-empty[hidden] {
+  display: none;
+}
+
+.diagnostic {
+  margin: 0;
+  min-height: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================== peças em cena ============================= */
+
+.pieces,
+.log,
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pieces {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+}
+
+.pieces .empty {
+  grid-column: 1 / -1;
+}
+
+.piece {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 11px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.piece .swatch {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+}
+
+.piece .name {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+}
+
+.piece .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.piece .cell {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.piece .cell small {
+  display: block;
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.piece.threatened {
+  border-color: rgba(168, 50, 40, 0.45);
+  background: var(--danger-wash);
+}
+
+.piece.threatened .sub {
+  color: var(--danger);
+}
+
+.piece.occluded {
+  background: var(--sunken);
+  border-style: dashed;
+}
+
+.piece.occluded .name,
+.piece.occluded .cell {
+  color: var(--ink-3);
+}
+
+/* ================================ tabuleiro =============================== */
+
+.board-panel {
+  gap: 14px;
+  flex: none;
+}
+
+.stage {
+  /* A proporção vem da tela onde a projeção está aberta: o palco mostra o
+     formato real da mesa projetada, não um retângulo qualquer. */
+  aspect-ratio: var(--projector-aspect, 16 / 9);
+  width: 100%;
+  flex: none;
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--ink-well);
+  border: 1px solid var(--line-strong);
+}
+
+#boardPreview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.terrain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.terrain-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.palette {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.brush {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.brush:hover {
+  background: var(--sunken);
+}
+
+.brush .chip-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+}
+
+.brush[aria-checked='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.brush[aria-checked='true'] .chip-color {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ================================== registro ============================== */
+
+.log {
+  flex: 1;
+  gap: 2px;
+}
+
+.log li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  animation: log-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.log li:nth-child(odd) {
+  background: var(--sunken);
+}
+
+.log .time {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  padding-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log .kind-danger {
+  color: var(--danger);
+  font-weight: 550;
+}
+
+.log .kind-threat {
+  color: var(--warn);
+  font-weight: 550;
+}
+
+.log .kind-terrain {
+  color: var(--accent-ink);
+}
+
+.log .kind-exit {
+  color: var(--ink-3);
+}
+
+@keyframes log-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .log li {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =================================== vazio ================================ */
+
+.empty {
+  display: grid;
+  gap: 3px;
+  padding: 18px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+}
+
+.empty b {
+  color: var(--ink-2);
+  font-weight: 550;
+}
+
+/* =================================== elenco =============================== */
+
+.roster {
+  max-height: 210px;
+  gap: 5px;
+}
+
+.roster li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 92px 28px 24px;
+  gap: 6px;
+  align-items: center;
+}
+
+.roster .id {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.roster input[type='text'],
+.roster select {
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.roster input[type='text']:hover,
+.roster select:hover {
+  border-color: var(--ink-3);
+}
+
+.roster input[type='color'] {
+  width: 28px;
+  height: 26px;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.roster .remove {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.roster .remove:hover {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.roster .remove .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* =================================== ajustes ============================== */
+
+.switch {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.switch input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.switch small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tuning {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.tuning summary {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tuning summary::-webkit-details-marker {
+  display: none;
+}
+
+.tuning summary::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.tuning[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.tuning[open] summary {
+  margin-bottom: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.field em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.field small {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ============================ faixa de calibração ========================= */
+
+.calibration-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 12px 20px;
+  max-width: min(560px, calc(100vw - 32px));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  background: #fdf4e3;
+  color: #7c4f08;
+  font-size: 13px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  z-index: 20;
+  animation: banner-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calibration-banner[hidden] {
+  display: none;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+/* ============================== adaptação =================================
+   Estes blocos ficam no fim de propósito: precisam vencer as regras de painel
+   declaradas acima, que têm a mesma especificidade.
+   ========================================================================== */
+
+/* Abaixo disto a terceira coluna não cabe: ela desce para uma faixa própria e a
+   página passa a rolar. As linhas precisam ter altura de conteúdo — presas na
+   altura da janela, os painéis transbordam e se sobrepõem à faixa de baixo. */
+@media (max-width: 1279px) {
+  body {
+    overflow: auto;
+  }
+
+  .layout {
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas:
+      'eye board'
+      'side side';
+    grid-template-rows: min-content min-content;
+    align-content: start;
+    overflow-y: auto;
+  }
+
+  .layout > section {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .panel-grow {
+    flex: none;
+    overflow: visible;
+  }
+
+  /* Precisa do descendente direto para vencer `.layout > section`. */
+  .layout > .area-side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    align-items: start;
+  }
+
+  .log,
+  .pieces,
+  .roster {
+    max-height: 320px;
+  }
+}
+
+/* Uma coluna só: o tabuleiro vem primeiro, porque é o que o mestre olha. */
+@media (max-width: 899px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .readout {
+    margin-left: 0;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'board'
+      'eye'
+      'side';
+    grid-template-rows: min-content min-content min-content;
+  }
+}

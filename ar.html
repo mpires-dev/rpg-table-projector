@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#05070d" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Mesa AR — detector de peças</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="stage" id="stage">
+      <div class="panes">
+        <div class="pane">
+          <video id="video" playsinline muted autoplay></video>
+          <canvas id="overlay"></canvas>
+          <span class="pane-label" id="cameraLabel">câmera</span>
+        </div>
+        <div class="pane preview-pane" id="previewPane" hidden>
+          <canvas id="preview"></canvas>
+          <span class="pane-label">o que vai pro projetor</span>
+        </div>
+      </div>
+
+      <header class="topbar" id="topbar" hidden>
+        <div class="status">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">parado</span>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="metrics" id="metrics">— fps</div>
+      </header>
+
+      <section class="intro" id="intro">
+        <div class="intro-card">
+          <h1>Mesa AR</h1>
+          <p>
+            Aponte a câmera do celular para as peças. Cada peça leva um marcador
+            ArUco colado no topo — o app reconhece o ID, o lugar e a direção de
+            cada uma, e desenha o overlay por cima.
+          </p>
+          <button class="primary" id="startBtn">Ligar câmera</button>
+          <button class="ghost" id="simBtn">Entrar no modo simulação</button>
+          <a class="link" href="/markers.html">Imprimir os marcadores →</a>
+          <a class="link" href="/projector.html" target="projector">Abrir a janela de projeção →</a>
+          <p class="hint" id="introHint"></p>
+        </div>
+      </section>
+
+      <nav class="toolbar" id="toolbar" hidden>
+        <button data-action="camera" id="cameraBtn">
+          <span class="icon">●</span><span>Câmera</span>
+        </button>
+        <button data-action="flip"><span class="icon">⇄</span><span>Virar</span></button>
+        <button data-action="torch" id="torchBtn">
+          <span class="icon">☀</span><span>Luz</span>
+        </button>
+        <button data-action="sim" id="simToggle">
+          <span class="icon">✦</span><span>Simular</span>
+        </button>
+        <button data-action="split" id="splitBtn">
+          <span class="icon">⊞</span><span>Preview</span>
+        </button>
+        <button data-action="panel"><span class="icon">≡</span><span>Elenco</span></button>
+      </nav>
+    </div>
+
+    <aside class="sheet" id="sheet" hidden>
+      <div class="sheet-handle"></div>
+      <div class="tabs">
+        <button class="tab active" data-tab="roster">Elenco</button>
+        <button class="tab" data-tab="projector">Projeção</button>
+        <button class="tab" data-tab="settings">Ajustes</button>
+        <button class="tab" data-tab="help">Ajuda</button>
+        <button class="close" id="closeSheet">✕</button>
+      </div>
+
+      <div class="tab-body" data-panel="roster">
+        <p class="muted">
+          O ID é o número impresso embaixo do marcador. Cadastre aqui quem é cada peça.
+        </p>
+        <div id="rosterList" class="roster-list"></div>
+        <div class="row">
+          <button class="ghost" id="addEntry">+ Nova peça</button>
+          <button class="ghost danger" id="resetRoster">Restaurar padrão</button>
+        </div>
+        <a class="link" href="/markers.html">Folha de marcadores para imprimir →</a>
+      </div>
+
+
+      <div class="tab-body" data-panel="projector" hidden>
+        <div class="proj-status">
+          <span class="dot" id="projDot"></span>
+          <span id="projStatus">nenhuma janela de projeção aberta</span>
+        </div>
+        <p class="muted">
+          A projeção é outra aba do mesmo endereço. Abra, arraste para o monitor do
+          projetor e aperte <b>F</b> lá para tela cheia.
+        </p>
+        <button class="ghost" id="openProjector">Abrir janela de projeção</button>
+        <label class="check">
+          <input type="checkbox" id="splitCheck" />
+          <span>Preview lado a lado (debug)</span>
+        </label>
+        <p class="muted">
+          Mostra a câmera à esquerda e, à direita, exatamente o mesmo desenho que sai pelo
+          projetor — mesmo código, para o preview servir de fato para depurar.
+        </p>
+
+        <hr class="sep" />
+
+        <h3>Calibração</h3>
+        <p class="muted" id="calibExplain">
+          A projeção mostra 4 alvos numerados. Toque, aqui na imagem da câmera, exatamente
+          onde cada alvo aparece na mesa — na ordem. Isso ensina o app a converter o que a
+          câmera vê no que o projetor desenha.
+        </p>
+        <p class="calib-step" id="calibStep" hidden></p>
+        <div class="row">
+          <button class="ghost" id="calibBtn">Calibrar</button>
+          <button class="ghost danger" id="clearCalib">Limpar</button>
+        </div>
+        <p class="muted">
+          Testando no PC sem projetor? Pode pular a calibração: sem ela a projeção desenha
+          direto, na mesma proporção da câmera.
+        </p>
+      </div>
+      <div class="tab-body" data-panel="settings" hidden>
+        <label class="field">
+          <span>Resolução de processamento <em id="procValue"></em></span>
+          <input type="range" id="procWidth" min="240" max="720" step="80" />
+          <small>Menor = mais rápido. Maior = lê marcador de mais longe.</small>
+        </label>
+        <label class="field">
+          <span>Suavização <em id="smoothValue"></em></span>
+          <input type="range" id="smoothing" min="10" max="100" step="5" />
+          <small>Baixo tira o tremor, mas atrasa a resposta ao movimento.</small>
+        </label>
+        <label class="field">
+          <span>Alcance de ameaça <em id="threatValue"></em></span>
+          <input type="range" id="threatRange" min="10" max="60" step="1" />
+          <small>Em lados de marcador. Herói e inimigo dentro disso acendem a linha vermelha.</small>
+        </label>
+        <label class="field">
+          <span>Raio de movimento <em id="moveValue"></em></span>
+          <input type="range" id="moveRadius" min="10" max="100" step="5" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="showMoveRadius" />
+          <span>Mostrar raio de movimento</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="showMarkerOutline" />
+          <span>Mostrar contorno do marcador (debug)</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="showGrid" />
+          <span>Grade de fundo no modo simulação</span>
+        </label>
+        <label class="field">
+          <span>Dicionário</span>
+          <select id="dictionary">
+            <option value="ARUCO_MIP_36h12">ARUCO_MIP_36h12 (recomendado, 250 IDs)</option>
+            <option value="ARUCO">ARUCO clássico (1024 IDs, menos robusto)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tab-body" data-panel="help" hidden>
+        <h3>Como usar</h3>
+        <ol>
+          <li>Abra <b>Imprimir os marcadores</b> e imprima a folha. Recorte e cole um marcador no topo de cada peça.</li>
+          <li>Volte aqui, toque em <b>Ligar câmera</b> e aponte para a mesa de cima.</li>
+          <li>Cadastre no <b>Elenco</b> qual ID é qual personagem.</li>
+        </ol>
+        <h3>Se não detectar</h3>
+        <ul>
+          <li>Marcador precisa de <b>borda branca</b> em volta — não recorte rente ao preto.</li>
+          <li>Luz difusa. Reflexo de papel brilhante e sombra dura atrapalham mais que pouca luz.</li>
+          <li>Chegue mais perto ou suba a resolução de processamento em <b>Ajustes</b>.</li>
+          <li>Marcador de <b>3 cm ou mais</b> lê bem a até ~1 m de distância.</li>
+        </ul>
+        <h3>Modo simulação</h3>
+        <p>
+          Sem marcador em mãos, ative <b>Simular</b> e arraste as peças com o dedo. Toda a
+          lógica de jogo roda igual — é o plano B para uma demo ao vivo.
+        </p>
+      </div>
+    </aside>
+
+    <script type="module" src="/src/ar.js"></script>
+  </body>
+</html>

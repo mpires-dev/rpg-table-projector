@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Marcadores para imprimir — Mesa AR</title>
+    <link rel="stylesheet" href="/src/markers.css" />
+  </head>
+  <body>
+    <header class="bar no-print">
+      <a class="back" href="/">← Voltar</a>
+      <h1>Folha de marcadores</h1>
+    </header>
+
+    <section class="controls no-print">
+      <label>
+        <span>Dicionário</span>
+        <select id="dictionary">
+          <option value="ARUCO_MIP_36h12">ARUCO_MIP_36h12 (recomendado)</option>
+          <option value="ARUCO">ARUCO clássico</option>
+        </select>
+      </label>
+      <label>
+        <span>Do ID</span>
+        <input type="number" id="from" value="0" min="0" />
+      </label>
+      <label>
+        <span>Até o ID</span>
+        <input type="number" id="to" value="7" min="0" />
+      </label>
+      <label>
+        <span>Lado do marcador (mm)</span>
+        <input type="number" id="size" value="30" min="10" max="120" step="5" />
+      </label>
+      <button class="primary" id="printBtn">Imprimir</button>
+      <p class="warn">
+        Na hora de imprimir escolha <b>escala 100%</b> (nada de "ajustar à página"), senão o
+        tamanho em mm sai errado. Papel fosco lê melhor que brilhante: reflexo cega o detector.
+        Recorte deixando a <b>borda branca</b> — ela faz parte do marcador.
+      </p>
+      <p class="warn" id="rosterNote"></p>
+    </section>
+
+    <main id="sheet" class="sheet"></main>
+
+    <script type="module" src="/src/markers.js"></script>
+  </body>
+</html>

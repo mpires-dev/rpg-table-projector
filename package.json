@@ -1,0 +1,29 @@
+{
+  "name": "rpg-table-projector",
+  "version": "0.1.0",
+  "description": "Mesa de RPG com tabuleiro projetado e peças reconhecidas por câmera (ArUco), 100% no navegador",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node server.js",
+    "preview": "vite preview --host",
+    "selftest": "node tools/selftest.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "vite": "^8.2.2"
+  },
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "heroicons": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f1ea" />
+    <meta
+      name="description"
+      content="Console do mestre para uma mesa de RPG com tabuleiro projetado e peças reconhecidas por câmera."
+    />
+    <title>Console do mestre — Mesa AR</title>
+    <link rel="stylesheet" href="/src/console.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="wordmark">Mesa AR<span>console do mestre</span></h1>
+
+      <div class="controls">
+        <button class="control" id="cameraBtn" data-icon="camera" aria-pressed="false">
+          <span class="label">Câmera</span>
+          <span class="state" id="cameraState">desligada</span>
+        </button>
+        <button class="control" id="projectorBtn" data-icon="projector" aria-pressed="false">
+          <span class="label">Projeção</span>
+          <span class="state" id="projectorState">fechada</span>
+        </button>
+        <button class="control" id="calibBtn" data-icon="calibrate" aria-pressed="false">
+          <span class="label">Calibrar</span>
+          <span class="state" id="calibState">direto</span>
+        </button>
+      </div>
+
+      <dl class="readout" aria-label="Desempenho">
+        <div><dt>fps</dt><dd id="mFps">—</dd></div>
+        <div><dt>detecção</dt><dd id="mMs">—</dd></div>
+        <div><dt>em cena</dt><dd id="mPieces">0</dd></div>
+      </dl>
+    </header>
+
+    <main class="layout">
+      <!-- o olho da mesa -->
+      <section class="area-eye">
+        <article class="panel">
+          <header class="panel-head">
+            <h2 data-icon="camera">Câmera</h2>
+            <span class="chip" id="visionMode">parada</span>
+          </header>
+
+          <div class="viewfinder">
+            <video id="video" playsinline muted autoplay></video>
+            <canvas id="overlay"></canvas>
+            <div class="viewfinder-empty" id="cameraHint">
+              <p class="headline">Câmera desligada</p>
+              <p>Ligue a câmera acima e aponte para a mesa, de cima.</p>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="button" id="flipBtn" data-icon="flip">Virar</button>
+            <button class="button" id="torchBtn" data-icon="torch" aria-pressed="false">Luz</button>
+            <button class="button" id="simBtn" data-icon="simulate" aria-pressed="false">Simular</button>
+          </div>
+
+          <p class="diagnostic" id="diag"></p>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <h2 data-icon="settings">Ajustes</h2>
+          </header>
+
+          <label class="switch">
+            <input type="checkbox" id="onlyKnown" />
+            <span>
+              Aceitar só IDs do elenco
+              <small>Corta de vez a peça fantasma que ninguém colocou na mesa.</small>
+            </span>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" id="showMoveRadius" />
+            <span>
+              Raio de movimento na projeção
+              <small>Círculo tracejado em volta de cada peça.</small>
+            </span>
+          </label>
+
+          <details class="tuning">
+            <summary>Detecção fina</summary>
+
+            <label class="field">
+              <span class="field-head">Rigor do código <em id="hammingValue"></em></span>
+              <input type="range" id="hamming" min="0" max="8" step="1" />
+              <small>Menor exige marcador mais limpo e reduz falso positivo.</small>
+            </label>
+
+            <label class="field">
+              <span class="field-head">Confirmação <em id="confirmValue"></em></span>
+              <input type="range" id="confirmFrames" min="1" max="8" step="1" />
+              <small>Quadros seguidos vendo a peça antes de aceitá-la.</small>
+            </label>
+
+            <label class="field">
+              <span class="field-head">Resolução <em id="procValue"></em></span>
+              <input type="range" id="procWidth" min="240" max="720" step="80" />
+              <small>Maior lê de mais longe e custa mais por quadro.</small>
+            </label>
+
+            <label class="field">
+              <span class="field-head">Alcance de ameaça <em id="threatValue"></em></span>
+              <input type="range" id="threatCells" min="1" max="3" step="1" />
+              <small>Distância em casas para acender a linha vermelha.</small>
+            </label>
+          </details>
+
+          <div class="row">
+            <button class="button quiet" id="clearBoard" data-icon="board">Limpar mapa</button>
+            <button class="button quiet" id="clearCalib" data-icon="calibrate">Limpar calibração</button>
+          </div>
+        </article>
+      </section>
+
+      <!-- o tabuleiro projetado -->
+      <section class="area-board">
+        <article class="panel board-panel">
+          <header class="panel-head">
+            <h2 data-icon="board">Tabuleiro 6×6</h2>
+            <span class="chip" id="boardTag">espelho da projeção</span>
+          </header>
+
+          <div class="stage" id="stage">
+            <canvas id="boardPreview" aria-label="Prévia do tabuleiro projetado"></canvas>
+          </div>
+
+          <div class="terrain">
+            <p class="terrain-label" data-icon="terrain">Pincel de terreno</p>
+            <div class="palette" id="palette" role="radiogroup" aria-label="Terreno"></div>
+          </div>
+        </article>
+
+        <article class="panel panel-grow">
+          <header class="panel-head">
+            <h2 data-icon="roster">Peças em cena</h2>
+            <span class="counter" id="pieceCount">0</span>
+          </header>
+          <ul class="pieces" id="pieceList"></ul>
+        </article>
+      </section>
+
+      <!-- o que o mestre acompanha -->
+      <section class="area-side">
+        <article class="panel panel-grow">
+          <header class="panel-head">
+            <h2 data-icon="log">Acontecendo</h2>
+            <button class="icon-button" id="clearLog" data-icon="clear" aria-label="Limpar o registro"></button>
+          </header>
+          <ul class="log" id="log"></ul>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <h2 data-icon="roster">Elenco</h2>
+            <span class="chip">ID do marcador</span>
+          </header>
+          <ul class="roster" id="rosterList"></ul>
+          <div class="row">
+            <button class="button" id="addPiece" data-icon="add">Nova peça</button>
+            <button class="button" id="resetRoster" data-icon="reset">Restaurar</button>
+          </div>
+          <div class="row">
+            <a class="button" href="/markers.html" target="_blank" rel="noopener" data-icon="print">
+              Marcadores
+            </a>
+            <a class="button" href="/ar.html" target="_blank" rel="noopener" data-icon="mobile">
+              Modo celular
+            </a>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <p class="calibration-banner" id="calibBanner" role="status" hidden></p>
+
+    <script type="module" src="/src/console.js"></script>
+  </body>
+</html>
