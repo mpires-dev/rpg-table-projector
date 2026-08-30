@@ -553,13 +553,35 @@ a {
 
 /* ============================= planos ============================= */
 
-/* Os três cartões esticam juntos para os botões pousarem na mesma linha:
-   preço lado a lado com base desalinhada lê como erro de composição. */
-.plans {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  align-items: stretch;
+/* Um cartão só: centralizado e estreito, para o preço não boiar numa faixa
+   larga demais. */
+.plan-single {
+  max-width: 460px;
+  margin: 0 auto;
+  gap: 20px;
+  box-shadow: var(--shadow-lg);
+  outline: 1.5px solid var(--bronze);
+}
+
+.plan-single .plan-price {
+  font-size: clamp(52px, 6vw, 68px);
+  gap: 10px;
+}
+
+/* No preço grande o "US$" precisa subir junto, senão fica pendurado na base. */
+.plan-single .plan-price small {
+  font-size: 26px;
+  align-self: flex-start;
+  padding-top: 8px;
+}
+
+.plan-note {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
 }
 
 .plan {
@@ -571,25 +593,6 @@ a {
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-}
-
-.plan-featured {
-  box-shadow: var(--shadow-lg);
-  outline: 1.5px solid var(--bronze);
-}
-
-.plan-badge {
-  position: absolute;
-  top: -12px;
-  left: 28px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--bronze);
-  color: #fff;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .plan h3 {
@@ -626,10 +629,6 @@ a {
 
 .plan .btn {
   margin-top: auto;
-}
-
-.plan-free .plan-price {
-  color: var(--ink-2);
 }
 
 /* ============================= lista ============================= */
@@ -903,8 +902,7 @@ a {
 
 @media (max-width: 940px) {
   .steps,
-  .features,
-  .plans {
+  .features {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -928,8 +926,7 @@ a {
   }
 
   .steps,
-  .features,
-  .plans {
+  .features {
     grid-template-columns: minmax(0, 1fr);
   }
 

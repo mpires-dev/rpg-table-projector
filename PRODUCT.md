@@ -40,24 +40,22 @@ O que isso destrava, e nenhuma mesa de vidro faz igual:
 3. **Lojas, clubes e bares de jogos** — o equipamento atrai público pagante;
    compram por unidade e precisam de licença comercial e garantia.
 
-## Oferta proposta (a validar com a lista de espera)
+## Oferta (decidida em 2026-08-30)
 
-- **Combat Maps One** — R$ 4.490, ou 12× R$ 419. Projetor + câmera, suporte de
-  teto, software incluso sem mensalidade.
-- **Preço de fundador** — R$ 3.990 para quem entra na lista antes do primeiro
-  lote. É o desconto que paga a validação.
-- **Licença comercial** (loja, clube, bar) — R$ 6.990 por unidade, com garantia
-  estendida e suporte prioritário.
+- **Combat Maps One — US$ 799.** Um aparelho, um preço: projetor e câmera numa
+  peça, braço de teto, cabos, cartela de marcadores e o software incluso.
 - **Software sozinho** — gratuito para quem já tem projetor e webcam. É o funil:
-  quem experimenta de graça entende o produto e sobe para o hardware.
+  quem experimenta de graça entende o produto antes de olhar o preço do
+  hardware. Não é um plano, é a porta de entrada.
 
-Sem assinatura. Nada de biblioteca paga de mapas enquanto ela não existir.
+Sem versão reduzida, sem assinatura e sem biblioteca paga de mapas enquanto ela
+não existir. A cobrança só acontece quando houver data de envio confirmada.
 
 ## O que esta primeira superfície precisa provar
 
 Que uma mesa comum pode virar aquilo — e conseguir o e-mail de alguém que diz,
-explicitamente, que pagaria o preço listado. A lista de espera não cobra; a
-pergunta sobre o preço é o instrumento de validação.
+explicitamente, que pagaria US$ 799. A fila não cobra nada agora; a pergunta
+sobre o preço é o instrumento de validação.
 
 ## Restrições inegociáveis
 
@@ -65,7 +63,7 @@ pergunta sobre o preço é o instrumento de validação.
   prazos de entrega ou especificações técnicas que ninguém mediu.
 - Toda imagem que não for a foto real do hardware precisa ser obviamente
   ilustração, nunca uma foto falsa de produto.
-- Português do Brasil, preços em real.
+- Português do Brasil; o preço é em dólar (US$ 799), decisão comercial do cliente.
 
 ## Compromisso de marca (decidido em 2026-08-30)
 

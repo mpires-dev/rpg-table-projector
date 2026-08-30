@@ -97,7 +97,7 @@ form.addEventListener('submit', async (event) => {
       // Sem endpoint: entrega pelo cliente de e-mail em vez de fingir que salvou.
       const assunto = encodeURIComponent('Lista de espera — Combat Maps');
       const corpo = encodeURIComponent(
-        `E-mail: ${email}\nPerfil: ${perfil}\nSobre o preço de R$ 3.990: ${preco}\n`
+        `E-mail: ${email}\nPerfil: ${perfil}\nSobre o preço de US$ 799: ${preco}\n`
       );
       location.href = `mailto:${EMAIL_FALLBACK}?subject=${assunto}&body=${corpo}`;
       status.textContent = 'Abrimos seu e-mail com a resposta pronta — é só enviar.';

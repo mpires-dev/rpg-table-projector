@@ -23,6 +23,6 @@ python3 -m http.server 8177    # e abra http://localhost:8177
 
 ## Preços na página
 
-`R$ 3.990` (fundador), `R$ 4.490` (cheio), `R$ 6.990` (licença comercial) e o
-software gratuito. Estão em três lugares: os cartões da seção de preço, a
-pergunta de validação do formulário e o texto do plano. Se mudar, mude nos três.
+**US$ 799**, um preço só. Aparece em dois lugares: o cartão da seção de preço e a
+pergunta de validação do formulário (que também vai no corpo do e-mail em
+`main.js`). Se mudar, mude nos dois.
