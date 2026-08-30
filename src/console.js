@@ -109,6 +109,7 @@ const state = {
   calib: { active: false, targets: [], points: [] },
   pieceKey: null,
   logRevision: -1,
+  bridge: { lastSent: 0, lastPayload: '', lastFullSend: 0, erro: null, enviando: false },
   wasRunning: false,
 };
 
