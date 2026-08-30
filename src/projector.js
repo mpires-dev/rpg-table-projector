@@ -3,9 +3,9 @@ import { Roster } from './roster.js';
 import { Viewport } from './viewport.js';
 import { drawProjectorScene } from './projectorScene.js';
 import { IDENTITY } from './homography.js';
-import { Board } from './board.js';
+import { Board, boardLayout, drawBoard } from './board.js';
 import { DEFAULT_RULES } from './rules.js';
-import { loadHomography, targetsInProjectorSpace } from './calibration.js';
+import { loadHomography } from './calibration.js';
 
 const STALE_MS = 2500; // sem notícias do controle por mais que isso = desconectado
 const HEARTBEAT_MS = 1000;
@@ -34,7 +34,7 @@ const state = {
   identity: false,
   lastMessage: -Infinity,
   matrix: loadHomography(),
-  calibration: null, // { targets, index }
+  calibration: false,
   settings: {
     threatCells: DEFAULT_RULES.threatCells,
     moveRadius: 2, // em células
@@ -75,18 +75,11 @@ bus.on('homography', (payload) => {
 });
 
 bus.on('calib:start', () => {
-  const aspect = view.height / view.width;
-  const targets = targetsInProjectorSpace(aspect);
-  state.calibration = { targets, index: 0 };
-  bus.send('calib:targets', { targets, aspect });
-});
-
-bus.on('calib:progress', (payload) => {
-  if (state.calibration) state.calibration.index = payload?.index ?? 0;
+  state.calibration = true;
 });
 
 bus.on('calib:stop', () => {
-  state.calibration = null;
+  state.calibration = false;
 });
 
 // Deixa o controle saber que existe uma projeção aberta.
@@ -131,52 +124,58 @@ function drawGame(now) {
   });
 }
 
-function drawCalibration(now) {
-  const { targets, index } = state.calibration;
-  const scale = view.dpr;
-  const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+/**
+ * Durante a calibração a projeção mostra o tabuleiro que ela pretende desenhar,
+ * com os quatro cantos acesos. É onde as peças precisam ficar: o mestre alinha
+ * objeto físico com luz, sem clicar em nada.
+ */
+function drawCalibration(now)
+{
+    const scale = view.dpr;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    const aspect = view.height / Math.max(1, view.width);
+    const layout = boardLayout(aspect);
 
-  ctx.clearRect(0, 0, view.width, view.height);
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+    ctx.clearRect(0, 0, view.width, view.height);
+    drawBoard(ctx, view, board, layout, { labels: true, time: now });
 
-  targets.forEach((target, i) => {
-    const x = view.toScreenX(target.x);
-    const y = view.toScreenY(target.y);
-    const done = i < index;
-    const active = i === index;
-    const radius = (active ? 26 + 6 * pulse : 20) * scale;
+    const cantos = [
+      { x: layout.x, y: layout.y },
+      { x: layout.x + layout.side, y: layout.y },
+      { x: layout.x + layout.side, y: layout.y + layout.side },
+      { x: layout.x, y: layout.y + layout.side },
+    ];
 
-    ctx.globalAlpha = active ? 1 : done ? 0.35 : 0.6;
-    ctx.fillStyle = done ? '#4ade80' : '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.save();
+    for (const canto of cantos) {
+      const x = view.toScreenX(canto.x);
+      const y = view.toScreenY(canto.y);
+      const raio = (26 + 8 * pulse) * scale;
 
-    if (active) {
-      // Anel externo pulsante: é neste alvo que a pessoa tem que clicar agora.
+      ctx.fillStyle = '#ffc857';
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.arc(x, y, raio, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = '#ffc857';
       ctx.lineWidth = 3 * scale;
       ctx.beginPath();
-      ctx.arc(x, y, radius + (14 + 10 * pulse) * scale, 0, Math.PI * 2);
+      ctx.arc(x, y, raio, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    ctx.fillStyle = '#05070d';
-    ctx.font = `700 ${20 * scale}px system-ui, sans-serif`;
-    ctx.fillText(String(i + 1), x, y);
-  });
-
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `600 ${18 * scale}px system-ui, sans-serif`;
-  ctx.fillText(
-    `Calibrando — clique no alvo ${Math.min(index + 1, targets.length)} na janela de controle`,
-    view.width / 2,
-    view.height / 2
-  );
-  ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `600 ${20 * scale}px system-ui, sans-serif`;
+    ctx.fillText(
+      'Ponha uma peça sobre cada círculo',
+      view.width / 2,
+      view.toScreenY(layout.y + layout.side) + 60 * scale
+    );
+    ctx.restore();
 }
 
 function updateHud(connected, calibrating) {

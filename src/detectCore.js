@@ -19,7 +19,7 @@ export class FrameDetector {
     this.config = {
       dictionaryName: 'ARUCO_MIP_36h12',
       maxHammingDistance: 3,
-      minMarkerSize: 0.035, // fração da largura do frame
+      minMarkerSize: 0.02, // fração da largura do frame
       ...config,
     };
     this.detector = null;

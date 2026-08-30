@@ -14,7 +14,7 @@ import { icon, hydrateIcons } from './icons.js';
 import { AR } from './aruco.js';
 import logoMarkup from './assets/logo.svg?raw';
 
-const SETTINGS_KEY = 'rpg-ar:console:v1';
+const SETTINGS_KEY = 'rpg-ar:console:v2';
 const BRIDGE_FALLBACK = 'https://combat-maps.up.railway.app';
 
 /**
@@ -49,7 +49,10 @@ const DEFAULT_SETTINGS = {
   onlyKnown: true, // filtro mais eficaz contra "apareceu peça que eu não mostrei"
   maxHamming: 3,
   confirmFrames: 3,
-  procWidth: 480,
+  // Mais resolução acha mais marcador: com várias peças na mesa, cada uma ocupa
+  // menos pixels, e a 480 as menores caíam abaixo do tamanho mínimo.
+  procWidth: 640,
+  minMarkerSize: 0.02,
   threatCells: 1,
   moveRadius: 2, // em células
   showMoveRadius: false, // ligado, quatro círculos de 2 casas cobrem o mapa inteiro
@@ -84,8 +87,11 @@ const vision = new Vision(el.video, {
   detector: {
     procWidth: settings.procWidth,
     maxHammingDistance: settings.maxHamming,
+    minMarkerSize: settings.minMarkerSize,
   },
-  tracker: { confirmFrames: settings.confirmFrames },
+  // Paciência maior com quem ainda não confirmou: uma peça que pisca entre
+  // quadros levava 250 ms para ser esquecida e recomeçava do zero.
+  tracker: { confirmFrames: settings.confirmFrames, candidateMs: 500 },
 });
 const camera = vision.camera;
 
@@ -106,7 +112,7 @@ const state = {
   lastPublish: 0,
   lastMetrics: 0,
   projector: { lastSeen: -Infinity, connected: false, aspect: 9 / 16 },
-  calib: { active: false, targets: [], points: [] },
+  calib: { active: false, amostras: [], erro: null },
   pieceKey: null,
   logRevision: -1,
   bridge: { lastSent: 0, lastPayload: '', lastFullSend: 0, erro: null, enviando: false },
@@ -131,6 +137,8 @@ function loop(now) {
 
   drawCameraPreview();
   drawBoardPreview(now);
+
+  if (state.calib.active) coletarCalibracao();
 
   if (state.scene) {
     log.update({
@@ -238,21 +246,23 @@ function drawCameraPreview() {
   if (state.calib.active) drawCalibrationHints(ctx, scale);
 }
 
+/** Marca as peças que a calibração está enxergando como cantos. */
 function drawCalibrationHints(ctx, scale) {
+  const visiveis = state.tracks.filter((t) => t.visible);
   ctx.save();
-  ctx.strokeStyle = '#5bd68c';
+  ctx.strokeStyle = visiveis.length === 4 ? '#5bd68c' : '#ffc857';
   ctx.lineWidth = 2 * scale;
-  for (const point of state.calib.points) {
-    const x = cameraView.toScreenX(point.x);
-    const y = cameraView.toScreenY(point.y);
+  for (const track of visiveis) {
+    const x = cameraView.toScreenX(track.cx);
+    const y = cameraView.toScreenY(track.cy);
     ctx.beginPath();
-    ctx.arc(x, y, 9 * scale, 0, Math.PI * 2);
+    ctx.arc(x, y, 16 * scale, 0, Math.PI * 2);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(x - 14 * scale, y);
-    ctx.lineTo(x + 14 * scale, y);
-    ctx.moveTo(x, y - 14 * scale);
-    ctx.lineTo(x, y + 14 * scale);
+    ctx.moveTo(x - 24 * scale, y);
+    ctx.lineTo(x + 24 * scale, y);
+    ctx.moveTo(x, y - 24 * scale);
+    ctx.lineTo(x, y + 24 * scale);
     ctx.stroke();
   }
   ctx.restore();
@@ -339,13 +349,6 @@ function markProjectorAlive(payload) {
   state.projector.lastSeen = performance.now();
   if (payload?.aspect > 0) state.projector.aspect = payload.aspect;
 }
-
-bus.on('calib:targets', (payload) => {
-  state.calib.targets = payload?.targets || [];
-  state.calib.points = [];
-  state.calib.active = state.calib.targets.length === 4;
-  updateCalibrationControl();
-});
 
 bus.send('control:hello', {});
 
@@ -628,13 +631,6 @@ function updateCalibrationControl() {
   el.calibState.textContent = active ? 'em curso' : state.matrix ? 'calibrado' : 'direto';
   el.calibBanner.hidden = !active;
   el.clearCalib.disabled = !state.matrix;
-  if (!active) return;
-
-  const index = state.calib.points.length;
-  const target = state.calib.targets[index];
-  el.calibBanner.textContent = target
-    ? `Clique no visor da câmera onde aparece o alvo ${index + 1} — o do canto ${target.label}.`
-    : 'Calculando a calibração…';
 }
 
 /* --------------------------------------------------------------- câmera */
@@ -777,42 +773,111 @@ el.clearBoard.addEventListener('click', () => {
 
 /* ------------------------------------------------------------ calibração */
 
-el.calibBtn.addEventListener('click', () => {
-  if (state.calib.active) {
-    state.calib = { active: false, targets: [], points: [] };
-    bus.send('calib:stop', {});
-  } else {
-    bus.send('calib:start', {});
-  }
-  updateCalibrationControl();
-});
+const CALIB_AMOSTRAS = 20; // ~um terço de segundo de leituras estáveis
 
-el.overlay.addEventListener('pointerdown', (event) => {
-  if (!state.calib.active) return;
-  const { nx, ny } = cameraView.toNormalized(event.clientX, event.clientY, el.overlay);
-  state.calib.points.push({ x: nx, y: ny });
+/**
+ * Calibra pela própria mesa: quatro peças nos cantos da área que deve virar o
+ * tabuleiro, e a homografia sai de onde a câmera as vê.
+ *
+ * A versão anterior pedia quatro cliques no vídeo, e só era precisa na mão de
+ * quem já sabia onde clicar. Aqui quem define a área é a peça física — o mesmo
+ * objeto que o jogo usa depois.
+ */
+function coletarCalibracao() {
+  const visiveis = state.tracks.filter((t) => t.visible);
 
-  if (state.calib.points.length < state.calib.targets.length) {
-    bus.send('calib:progress', { index: state.calib.points.length });
-    updateCalibrationControl();
+  if (visiveis.length !== 4) {
+    state.calib.amostras = [];
+    state.calib.erro =
+      visiveis.length < 4
+        ? `vejo ${visiveis.length} de 4 peças`
+        : `vejo ${visiveis.length} peças — deixe só as quatro dos cantos`;
+    renderCalibBanner();
     return;
   }
 
-  const matrix = computeHomography(state.calib.points, state.calib.targets);
+  state.calib.erro = null;
+  state.calib.amostras.push(visiveis.map((t) => ({ x: t.cx, y: t.cy })));
+
+  if (state.calib.amostras.length >= CALIB_AMOSTRAS) concluirCalibracao();
+  else renderCalibBanner();
+}
+
+/** Ordena quatro pontos em superior-esq, superior-dir, inferior-dir, inferior-esq. */
+function ordenarCantos(pontos) {
+  const soma = (p) => p.x + p.y;
+  const dif = (p) => p.x - p.y;
+  const menorPor = (f) => pontos.reduce((a, b) => (f(b) < f(a) ? b : a));
+  const maiorPor = (f) => pontos.reduce((a, b) => (f(b) > f(a) ? b : a));
+  return [menorPor(soma), maiorPor(dif), maiorPor(soma), menorPor(dif)];
+}
+
+function concluirCalibracao() {
+  // Média das amostras: uma leitura só carrega o tremor de um quadro.
+  const total = state.calib.amostras.length;
+  const medias = [0, 1, 2, 3].map((i) => {
+    let x = 0;
+    let y = 0;
+    for (const amostra of state.calib.amostras) {
+      x += amostra[i].x;
+      y += amostra[i].y;
+    }
+    return { x: x / total, y: y / total };
+  });
+
+  const cantos = ordenarCantos(medias);
+
+  // Os quatro vértices do tabuleiro, no espaço da projeção.
+  const layout = boardLayout(state.projector.aspect);
+  const destino = [
+    { x: layout.x, y: layout.y },
+    { x: layout.x + layout.side, y: layout.y },
+    { x: layout.x + layout.side, y: layout.y + layout.side },
+    { x: layout.x, y: layout.y + layout.side },
+  ];
+
+  const matrix = computeHomography(cantos, destino);
   if (!matrix) {
-    state.calib.points = [];
-    bus.send('calib:progress', { index: 0 });
-    el.calibBanner.textContent =
-      'Os quatro pontos ficaram quase alinhados. Recomeçando — clique em cantos bem afastados.';
+    // Acontece quando as peças ficam quase em linha ou muito juntas.
+    state.calib.amostras = [];
+    state.calib.erro = 'as quatro peças estão alinhadas demais — abra o quadrado';
+    renderCalibBanner();
     return;
   }
 
   saveHomography(matrix);
   state.matrix = matrix;
   bus.send('homography', { matrix });
-  state.calib = { active: false, targets: [], points: [] };
+  state.calib = { active: false, amostras: [], erro: null };
   bus.send('calib:stop', {});
   updateCalibrationControl();
+}
+
+function renderCalibBanner() {
+  el.calibBanner.hidden = !state.calib.active;
+  if (!state.calib.active) return;
+
+  if (state.calib.erro) {
+    el.calibBanner.textContent = `Calibrando — ${state.calib.erro}`;
+    return;
+  }
+  const feito = state.calib.amostras.length;
+  el.calibBanner.textContent =
+    feito === 0
+      ? 'Calibrando — ponha uma peça em cada canto da área do tabuleiro'
+      : `Calibrando — segurando as quatro peças (${Math.round((feito / CALIB_AMOSTRAS) * 100)}%)`;
+}
+
+el.calibBtn.addEventListener('click', () => {
+  if (state.calib.active) {
+    state.calib = { active: false, amostras: [], erro: null };
+    bus.send('calib:stop', {});
+  } else {
+    state.calib = { active: true, amostras: [], erro: null };
+    bus.send('calib:start', {});
+  }
+  updateCalibrationControl();
+  renderCalibBanner();
 });
 
 el.clearCalib.addEventListener('click', () => {
@@ -1140,5 +1205,8 @@ renderLog();
 updateCameraControl();
 updateProjectorControl();
 updateCalibrationControl();
+renderCalibBanner();
+renderBridgeStatus();
+ouvirServidor();
 updateReadout();
 requestAnimationFrame(loop);

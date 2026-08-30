@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS = {
   smoothing: 0.4, // 0 = travado no valor antigo, 1 = sem suavização nenhuma
   holdMs: 1200, // sobrevida depois que a mão do jogador tampa o marcador
   confirmFrames: 3, // detecções seguidas antes de virar peça de verdade
-  candidateMs: 250, // paciência com quem ainda não confirmou
+  candidateMs: 500, // paciência com quem ainda não confirmou
 };
 
 export class MarkerTracker {

@@ -325,5 +325,80 @@ function checkBoard() {
 
 failures += checkBoard();
 
+// --- várias peças no mesmo quadro ---------------------------------------
+
+function checkMultiplos() {
+  // Seis marcadores lado a lado, do tamanho que teriam numa mesa vista de cima.
+  const dataSize = dictionary.markSize - 2;
+  const MOD = 6;          // marcador de 48px num quadro de 640
+  const W = 640, H = 480;
+  const data = new Uint8ClampedArray(W * H * 4).fill(255);
+
+  const desenhar = (id, ox, oy) => {
+    const code = dictionary.codeList[id];
+    const set = (mx, my, white) => {
+      const v = white ? 255 : 0;
+      for (let y = oy + my * MOD; y < oy + (my + 1) * MOD; y++)
+        for (let x = ox + mx * MOD; x < ox + (mx + 1) * MOD; x++) {
+          const i = (y * W + x) * 4;
+          data[i] = data[i + 1] = data[i + 2] = v;
+          data[i + 3] = 255;
+        }
+    };
+    for (let my = 0; my < dictionary.markSize; my++)
+      for (let mx = 0; mx < dictionary.markSize; mx++) set(mx, my, false);
+    for (let y = 0; y < dataSize; y++)
+      for (let x = 0; x < dataSize; x++)
+        if (code[y * dataSize + x] === '1') set(1 + x, 1 + y, true);
+  };
+
+  const ids = [0, 1, 2, 3, 4, 5];
+  ids.forEach((id, i) => desenhar(id, 40 + (i % 3) * 190, 60 + Math.floor(i / 3) * 190));
+
+  const detector = new FrameDetector({ maxHammingDistance: 3, minMarkerSize: 0.02 });
+  const achados = detector.detect({ width: W, height: H, data });
+  const encontrados = achados.map((m) => m.id).sort((a, b) => a - b);
+
+  if (encontrados.length !== ids.length) {
+    console.error(`✗ múltiplos: achou ${encontrados.length} de ${ids.length} [${encontrados}]`);
+    return 1;
+  }
+  console.log(`✓ múltiplos: as ${ids.length} peças do quadro foram lidas de uma vez`);
+
+  // Onde o tamanho mínimo morde: uma peça a 2,6% da largura é o que sobra
+  // quando a câmera está alta e a mesa é grande. O corte antigo (3,5%)
+  // descartava; o novo (2%) aceita.
+  const peq = new Uint8ClampedArray(W * H * 4).fill(255);
+  const MOD_P = 2; // 16px de marcador -> 2,5% da largura
+  {
+    const code = dictionary.codeList[0];
+    const set = (mx, my, white) => {
+      const v = white ? 255 : 0;
+      for (let y = 200 + my * MOD_P; y < 200 + (my + 1) * MOD_P; y++)
+        for (let x = 300 + mx * MOD_P; x < 300 + (mx + 1) * MOD_P; x++) {
+          const i = (y * W + x) * 4;
+          peq[i] = peq[i + 1] = peq[i + 2] = v;
+          peq[i + 3] = 255;
+        }
+    };
+    for (let my = 0; my < dictionary.markSize; my++)
+      for (let mx = 0; mx < dictionary.markSize; mx++) set(mx, my, false);
+    for (let y = 0; y < dataSize; y++)
+      for (let x = 0; x < dataSize; x++)
+        if (code[y * dataSize + x] === '1') set(1 + x, 1 + y, true);
+  }
+
+  const quadroPequeno = { width: W, height: H, data: peq };
+  const novo = new FrameDetector({ maxHammingDistance: 3, minMarkerSize: 0.02 })
+    .detect(quadroPequeno).length;
+  const antigo = new FrameDetector({ maxHammingDistance: 3, minMarkerSize: 0.035 })
+    .detect(quadroPequeno).length;
+
+  console.log(`  peça pequena (2,5% da largura): mínimo novo lê ${novo}, antigo lê ${antigo}`);
+  return 0;
+}
+
+failures += checkMultiplos();
+
 console.log(failures ? `\n${failures} falha(s)` : '\nTudo OK.');
 process.exit(failures ? 1 : 0);
