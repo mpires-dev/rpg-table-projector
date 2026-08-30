@@ -142,6 +142,37 @@ function drawCameraPreview() {
 
   if (state.simulating) return;
 
+  // Antes das peças confirmadas, o que a câmera leu e os filtros recusaram.
+  // Sem isto, "não detectou" e "detectou e descartei" parecem a mesma coisa.
+  const confirmados = new Set(state.tracks.map((t) => t.id));
+  for (const marker of vision.lastMarkers) {
+    if (confirmados.has(marker.id)) continue;
+    ctx.save();
+    ctx.strokeStyle = '#ffc857';
+    ctx.setLineDash([5 * scale, 4 * scale]);
+    ctx.lineWidth = 1.5 * scale;
+    ctx.beginPath();
+    marker.corners.forEach((c, index) => {
+      const x = cameraView.toScreenX(c.x);
+      const y = cameraView.toScreenY(c.y);
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffc857';
+    ctx.font = `600 ${11 * scale}px 'Inter Variable', system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    const known = !roster.get(marker.id).unregistered;
+    ctx.fillText(
+      known ? `ID ${marker.id} (instável)` : `ID ${marker.id} fora do elenco`,
+      cameraView.toScreenX(marker.corners[0].x),
+      cameraView.toScreenY(marker.corners[0].y) - 6 * scale
+    );
+    ctx.restore();
+  }
+
   for (const track of state.tracks) {
     const entry = roster.get(track.id);
     ctx.save();
@@ -499,7 +530,10 @@ function updateReadout() {
     el.diag.textContent = 'peças virtuais — arraste no tabuleiro';
   } else if (camera.isRunning) {
     const { lastRawCount, rejectedCount } = vision.tracker;
-    el.diag.textContent = `${lastRawCount} lido · ${rejectedCount} fora do elenco · ${state.tracks.length} confirmado`;
+    const ids = vision.lastMarkers.map((m) => m.id).join(',');
+    el.diag.textContent =
+      `${lastRawCount} lido · ${rejectedCount} fora do elenco · ${state.tracks.length} confirmado` +
+      (ids ? `  [${ids}]` : '');
   } else {
     el.diag.textContent = '';
   }

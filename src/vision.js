@@ -19,6 +19,8 @@ export class Vision {
     this.video = videoEl;
 
     this.tracks = [];
+    /** Marcadores do último quadro, antes de qualquer filtro — para diagnóstico. */
+    this.lastMarkers = [];
     this.pending = null;
     this.inFlight = false;
     this.lastDetection = 0;
@@ -36,6 +38,7 @@ export class Vision {
   reset() {
     this.tracker.reset();
     this.tracks = [];
+    this.lastMarkers = [];
     this.pending = null;
   }
 
@@ -58,6 +61,7 @@ export class Vision {
     this._pump(now);
 
     if (this.pending) {
+      this.lastMarkers = this.pending;
       this.tracks = this.tracker.update(this.pending, now, accept);
       this.pending = null;
     }
