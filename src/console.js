@@ -1,5 +1,4 @@
 import '@fontsource-variable/inter/wght.css';
-import '@fontsource-variable/fraunces/full.css';
 
 import { Vision } from './vision.js';
 import { Roster, FACTIONS } from './roster.js';
@@ -12,6 +11,8 @@ import { drawProjectorScene } from './projectorScene.js';
 import { computeHomography, IDENTITY } from './homography.js';
 import { loadHomography, saveHomography, clearHomography } from './calibration.js';
 import { icon, hydrateIcons } from './icons.js';
+import { AR } from './aruco.js';
+import logoMarkup from './assets/logo.svg?raw';
 
 const SETTINGS_KEY = 'rpg-ar:console:v1';
 
@@ -35,6 +36,8 @@ for (const id of [
   'rosterList', 'addPiece', 'resetRoster', 'palette', 'clearBoard', 'clearCalib',
   'onlyKnown', 'hamming', 'hammingValue', 'confirmFrames', 'confirmValue',
   'procWidth', 'procValue', 'threatCells', 'threatValue', 'showMoveRadius',
+  'wordmark', 'markersBtn', 'markersModal', 'markersGrid', 'markersNote',
+  'closeMarkers', 'printMarkers',
 ]) {
   el[id] = document.getElementById(id);
 }
@@ -716,6 +719,99 @@ el.resetRoster.addEventListener('click', () => {
 
 el.clearLog.addEventListener('click', () => log.clear());
 
+
+/* ------------------------------------------------------ modal de marcadores */
+
+const MARKER_DICTIONARY = 'ARUCO_MIP_36h12';
+let dictionary = null;
+
+/**
+ * Desenha os marcadores do elenco. O dicionário só é instanciado quando o modal
+ * abre pela primeira vez — são 250 códigos que ninguém precisa no boot.
+ */
+function renderMarkers() {
+  if (!dictionary) dictionary = new AR.Dictionary(MARKER_DICTIONARY);
+  el.markersGrid.innerHTML = '';
+
+  const entries = roster.list();
+  for (const entry of entries) {
+    const card = document.createElement('figure');
+    card.className = 'marker-card';
+
+    const art = document.createElement('div');
+    art.className = 'marker-art';
+    try {
+      art.innerHTML = dictionary.generateSVG(entry.id);
+    } catch {
+      // ID fora do dicionário: melhor dizer isso do que mostrar um quadrado errado.
+      art.textContent = '—';
+    }
+
+    const caption = document.createElement('figcaption');
+    caption.className = 'marker-name';
+    const dot = document.createElement('span');
+    dot.className = 'swatch-dot';
+    dot.style.background = entry.color;
+    const name = document.createElement('b');
+    name.textContent = entry.name;
+    const id = document.createElement('small');
+    id.textContent = `ID ${entry.id}`;
+    caption.append(dot, name, id);
+
+    card.append(art, caption);
+    el.markersGrid.appendChild(card);
+  }
+
+  el.markersNote.textContent = `${entries.length} peça${entries.length === 1 ? '' : 's'} · ${MARKER_DICTIONARY} · imprima em escala 100%`;
+}
+
+el.markersBtn.addEventListener('click', () => {
+  renderMarkers();
+  el.markersModal.showModal();
+});
+
+el.closeMarkers.addEventListener('click', () => el.markersModal.close());
+/**
+ * Imprimir a partir de um <dialog> é traiçoeiro: o modal vive no top layer e os
+ * navegadores divergem no que sai no papel — no Chrome, sai só o fundo escuro.
+ * Então a folha é montada como conteúdo normal do documento, impressa e desfeita.
+ */
+el.printMarkers.addEventListener('click', () => {
+  document.querySelector('.print-area')?.remove();
+
+  const area = document.createElement('div');
+  area.className = 'print-area';
+
+  const title = document.createElement('h1');
+  title.textContent = 'Marcadores do elenco';
+  const note = document.createElement('p');
+  note.textContent =
+    'Imprima em escala 100%. Recorte deixando a borda branca — ela faz parte do código.';
+
+  area.append(title, note, el.markersGrid.cloneNode(true));
+  document.body.appendChild(area);
+
+  const cleanup = () => {
+    area.remove();
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  window.print();
+});
+
+// Clique no fundo escuro fecha: o <dialog> entrega o clique do backdrop como um
+// clique no próprio elemento, fora da caixa de conteúdo.
+el.markersModal.addEventListener('click', (event) => {
+  if (event.target !== el.markersModal) return;
+  const box = el.markersModal.getBoundingClientRect();
+  const inside =
+    event.clientX >= box.left &&
+    event.clientX <= box.right &&
+    event.clientY >= box.top &&
+    event.clientY <= box.bottom;
+  if (!inside) el.markersModal.close();
+});
+
 /* ------------------------------------------------------------ ajustes */
 
 function bindRange(input, label, key, format, apply) {
@@ -791,6 +887,7 @@ if (new URLSearchParams(location.search).has('sim')) {
   el.simBtn.click();
 }
 
+el.wordmark.insertAdjacentHTML('afterbegin', logoMarkup);
 hydrateIcons();
 renderRoster();
 renderPalette();
