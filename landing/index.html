@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#faf8f5" />
+    <title>Combat Maps — o tabuleiro projetado sobre a sua mesa</title>
+    <meta
+      name="description"
+      content="Um projetor com câmera que transforma qualquer mesa em tabuleiro de RPG. O mapa vira luz, as miniaturas continuam suas. Entre na lista do primeiro lote."
+    />
+
+    <meta property="og:title" content="Combat Maps — o tabuleiro projetado sobre a sua mesa" />
+    <meta
+      property="og:description"
+      content="O mapa vira luz sobre a mesa que vocês já têm. As miniaturas continuam sendo as peças."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/projetor.jpg" />
+    <meta property="og:locale" content="pt_BR" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@300;400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: a mesa que o grupo já tem vira o tabuleiro — o mapa é luz, a
+      miniatura continua na mão. Recusa a promessa de "mesa de vidro dos sonhos"
+      que a categoria vende e que ninguém cabe em casa.
+      OWN-WORLD: papel quente quase branco, tinta grafite, bronze como único
+      acento; cenas de jogo em preto absoluto; grotesca Schibsted para voz e
+      Azeret Mono para dados. Produto fotografado em luz de estúdio, sombra longa.
+      STORY: entende que serve na mesa dele, acredita porque o software já roda
+      hoje, e entra na lista dizendo a que preço compraria.
+      FIRST VIEWPORT: título em duas linhas, subtítulo curto, dois botões, o
+      aparelho grande logo abaixo em luz de estúdio; ação primária à esquerda.
+      FORM: showroom premium de produto físico — cânone da categoria, escolhido
+      pelo cliente sobre as direções sorteadas (seed c8dffbce).
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the
+      finish review, the verdict, and DESIGN.md
+    -->
+
+    <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+
+    <header class="topbar" id="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="#topo" aria-label="Combat Maps, início">
+          <img src="assets/logo.svg" alt="Combat Maps" width="132" height="40" />
+        </a>
+
+        <nav class="nav" aria-label="Seções">
+          <a href="#produto">Produto</a>
+          <a href="#funciona">Como funciona</a>
+          <a href="#specs">Especificações</a>
+          <a href="#preco">Preço</a>
+          <a href="#duvidas">Dúvidas</a>
+        </nav>
+
+        <a class="btn btn-primary btn-sm" href="#lista">Entrar na lista</a>
+      </div>
+    </header>
+
+    <main id="conteudo">
+      <!-- ============================ hero ============================ -->
+      <section class="hero" id="topo">
+        <div class="wrap hero-inner">
+          <h1 class="hero-title reveal">
+            A mesa é a de vocês.<br />
+            O tabuleiro chega do teto.
+          </h1>
+
+          <p class="hero-sub reveal" data-delay="1">
+            Combat Maps projeta o mapa sobre a mesa que o grupo já usa e reconhece cada
+            miniatura pelo marcador no topo. A masmorra vira luz, e as peças continuam suas.
+          </p>
+
+          <div class="hero-actions reveal" data-delay="2">
+            <a class="btn btn-primary" href="#lista">Entrar na lista do 1º lote</a>
+            <a class="btn btn-ghost" href="https://combat-maps.up.railway.app" target="_blank" rel="noopener">
+              Abrir o software agora
+              <span class="btn-note">grátis, roda no navegador</span>
+            </a>
+          </div>
+
+          <figure class="hero-shot reveal" data-delay="3">
+            <picture>
+              <source srcset="assets/projetor.webp" type="image/webp" />
+              <img
+                src="assets/projetor.jpg"
+                width="1536"
+                height="1024"
+                alt="O aparelho Combat Maps visto de baixo: corpo de alumínio escovado, lente de projeção acesa e a câmera ao lado, montado em braço de teto."
+                fetchpriority="high"
+              />
+            </picture>
+            <figcaption>
+              <span class="tag">Protótipo</span>
+              Unidade de projeção e leitura. Instala no teto, aponta para baixo.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ====================== prova que já existe ====================== -->
+      <section class="proof">
+        <div class="wrap proof-inner">
+          <p class="proof-lead">
+            O software não é promessa: <strong>está no ar e é gratuito</strong>. Se você
+            já tem um projetor e uma webcam, dá para jogar hoje à noite.
+          </p>
+          <a class="link-arrow" href="https://combat-maps.up.railway.app" target="_blank" rel="noopener">
+            combat-maps.up.railway.app
+          </a>
+        </div>
+      </section>
+
+      <!-- ========================= como funciona ========================= -->
+      <section class="section" id="funciona">
+        <div class="wrap">
+          <header class="section-head">
+            <h2>Três coisas na mesa, e acabou.</h2>
+            <p>
+              Sem tapete de vidro, sem tablet no meio, sem trocar a sua mesa. O aparelho
+              olha de cima e devolve o mapa por cima.
+            </p>
+          </header>
+
+          <ol class="steps">
+            <li class="step reveal">
+              <span class="step-n">01</span>
+              <h3>Prende no teto</h3>
+              <p>
+                Um braço fixo sobre a mesa, a cerca de dois metros e meio do tampo. Liga na
+                tomada e no seu computador.
+              </p>
+              <div class="step-art" aria-hidden="true">
+                <svg viewBox="0 0 220 150" fill="none">
+                  <path d="M20 14h180" stroke="currentColor" stroke-width="2" opacity=".35" />
+                  <rect x="96" y="14" width="28" height="16" rx="3" fill="currentColor" opacity=".5" />
+                  <rect x="82" y="30" width="56" height="14" rx="4" fill="currentColor" />
+                  <path d="M110 44 62 116h96L110 44Z" fill="url(#beam)" />
+                  <rect x="40" y="116" width="140" height="7" rx="3" fill="currentColor" opacity=".8" />
+                  <path d="M52 123v18M168 123v18" stroke="currentColor" stroke-width="4" opacity=".8" />
+                  <defs>
+                    <linearGradient id="beam" x1="110" y1="44" x2="110" y2="116" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#a9772f" stop-opacity=".85" />
+                      <stop offset="1" stop-color="#a9772f" stop-opacity=".12" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </li>
+
+            <li class="step reveal" data-delay="1">
+              <span class="step-n">02</span>
+              <h3>Cola um marcador em cada peça</h3>
+              <p>
+                Um adesivo quadrado no topo da miniatura. É por ele que o sistema sabe que
+                aquela é a Elara, em que casa está e para onde está virada.
+              </p>
+              <div class="step-art" aria-hidden="true">
+                <svg viewBox="0 0 220 150" fill="none">
+                  <g transform="translate(28 26)">
+                    <rect width="62" height="62" rx="4" fill="currentColor" />
+                    <g fill="#fff">
+                      <rect x="14" y="14" width="10" height="10" />
+                      <rect x="34" y="14" width="10" height="10" />
+                      <rect x="24" y="24" width="10" height="10" />
+                      <rect x="14" y="34" width="10" height="10" />
+                      <rect x="44" y="34" width="10" height="10" />
+                      <rect x="34" y="44" width="10" height="10" />
+                    </g>
+                  </g>
+                  <path d="M104 57h26" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" opacity=".5" />
+                  <path d="M126 52l8 5-8 5" stroke="currentColor" stroke-width="2" opacity=".5" />
+                  <g transform="translate(146 18)">
+                    <ellipse cx="26" cy="104" rx="24" ry="6" fill="currentColor" opacity=".18" />
+                    <rect x="12" y="16" width="28" height="8" rx="2" fill="currentColor" />
+                    <path d="M26 24c12 0 18 10 18 26v50H8V50c0-16 6-26 18-26Z" fill="currentColor" opacity=".85" />
+                  </g>
+                </svg>
+              </div>
+            </li>
+
+            <li class="step reveal" data-delay="2">
+              <span class="step-n">03</span>
+              <h3>Abre o console e joga</h3>
+              <p>
+                No seu notebook fica o painel do mestre: quem está em cada casa, o terreno
+                embaixo da peça, quem está ameaçado. Na mesa, só o jogo.
+              </p>
+              <div class="step-art" aria-hidden="true">
+                <svg viewBox="0 0 220 150" fill="none">
+                  <rect x="24" y="24" width="172" height="96" rx="6" fill="currentColor" opacity=".08" />
+                  <rect x="24" y="24" width="172" height="96" rx="6" stroke="currentColor" stroke-width="1.5" opacity=".4" />
+                  <rect x="36" y="38" width="60" height="68" rx="4" fill="currentColor" opacity=".55" />
+                  <g stroke="#c08b3e" stroke-width="1.4" opacity=".9">
+                    <path d="M108 44h76M108 60h76M108 76h76M108 92h76" />
+                    <path d="M108 44v48M127 44v48M146 44v48M165 44v48M184 44v48" />
+                  </g>
+                  <circle cx="137" cy="68" r="7" fill="#c08b3e" />
+                  <circle cx="175" cy="52" r="7" fill="#a33" />
+                  <path d="M84 130h52" stroke="currentColor" stroke-width="3" opacity=".5" />
+                </svg>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ========================= a mesa em jogo ========================= -->
+      <section class="stage" id="produto">
+        <div class="wrap stage-inner">
+          <header class="section-head section-head-invert">
+            <h2>Apaga a luz e a masmorra aparece.</h2>
+            <p>
+              O mapa ocupa a mesa inteira. A peça que entra na lava acende em vermelho.
+              O inimigo que chega a uma casa puxa uma linha até o herói.
+            </p>
+          </header>
+
+          <div class="table-scene" role="img"
+            aria-label="Ilustração da mesa vista de cima: grade seis por seis projetada, casas de lava e parede pintadas, e seis peças posicionadas com o nome de cada personagem.">
+            <svg viewBox="0 0 720 480" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <radialGradient id="glow" cx="50%" cy="45%" r="60%">
+                  <stop offset="0" stop-color="#1a2440" stop-opacity=".95" />
+                  <stop offset="1" stop-color="#05060a" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="cone" x1="360" y1="0" x2="360" y2="150" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#c08b3e" stop-opacity=".28" />
+                  <stop offset="1" stop-color="#c08b3e" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+
+              <rect width="720" height="480" fill="#05060a" />
+              <ellipse cx="360" cy="250" rx="330" ry="230" fill="url(#glow)" />
+              <path d="M330 0h60l190 150H140L330 0Z" fill="url(#cone)" />
+
+              <g transform="translate(150 110)">
+                <rect width="420" height="300" fill="#080b14" />
+                <rect x="140" y="50" width="70" height="50" fill="#b8462a" opacity=".55" />
+                <rect x="210" y="150" width="70" height="50" fill="#6d7383" opacity=".5" />
+                <rect x="280" y="200" width="70" height="50" fill="#2f6fb5" opacity=".45" />
+                <rect x="0" y="200" width="70" height="50" fill="#a98240" opacity=".4" />
+
+                <g stroke="#7ea2e0" stroke-width="1" opacity=".55">
+                  <path d="M70 0v300M140 0v300M210 0v300M280 0v300M350 0v300" />
+                  <path d="M0 50h420M0 100h420M0 150h420M0 200h420M0 250h420" />
+                </g>
+                <rect width="420" height="300" fill="none" stroke="#9dbcf0" stroke-width="2" opacity=".8" />
+
+                <!-- Linha de ameaça: o inimigo em D1 está a uma casa da clériga em C2. -->
+                <path d="M231 39 189 61" stroke="#ff5c5c" stroke-width="2" stroke-dasharray="5 4" />
+
+                <g>
+                  <circle cx="35" cy="278" r="13" fill="none" stroke="#6ea8ff" stroke-width="2.5" />
+                  <circle cx="35" cy="278" r="13" fill="#6ea8ff" opacity=".2" />
+                  <circle cx="245" cy="278" r="13" fill="none" stroke="#ffc857" stroke-width="2.5" />
+                  <circle cx="245" cy="278" r="13" fill="#ffc857" opacity=".2" />
+                  <circle cx="315" cy="278" r="13" fill="none" stroke="#7ef0b0" stroke-width="2.5" />
+                  <circle cx="315" cy="278" r="13" fill="#7ef0b0" opacity=".2" />
+                  <circle cx="175" cy="78" r="13" fill="none" stroke="#d69cff" stroke-width="2.5" />
+                  <circle cx="175" cy="78" r="13" fill="#d69cff" opacity=".2" />
+                  <circle cx="245" cy="28" r="13" fill="none" stroke="#ff5c5c" stroke-width="2.5" />
+                  <circle cx="245" cy="28" r="13" fill="#ff5c5c" opacity=".2" />
+                  <circle cx="315" cy="28" r="13" fill="none" stroke="#ff8a3d" stroke-width="2.5" />
+                  <circle cx="315" cy="28" r="13" fill="#ff8a3d" opacity=".2" />
+                </g>
+
+                <!-- O nome mora na mesma casa da peça: um degrau acima do disco,
+                     como a projeção desenha na mesa. -->
+                <g font-family="Azeret Mono, monospace" font-size="9" fill="#dbe4f7">
+                  <text x="35" y="258" text-anchor="middle">ELARA</text>
+                  <text x="245" y="258" text-anchor="middle">BRANN</text>
+                  <text x="315" y="258" text-anchor="middle">SYLAS</text>
+                  <text x="175" y="58" text-anchor="middle">MIRA</text>
+                  <text x="245" y="8" text-anchor="middle" fill="#ffb3b3">ORC</text>
+                  <text x="315" y="8" text-anchor="middle" fill="#ffb3b3">CHEFE</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <p class="scene-note">
+            Ilustração da projeção. As fotos da mesa em uso entram assim que a primeira
+            unidade de produção estiver montada.
+          </p>
+        </div>
+      </section>
+
+      <!-- =========================== recursos =========================== -->
+      <section class="section section-tint">
+        <div class="wrap">
+          <header class="section-head">
+            <h2>O que o aparelho resolve.</h2>
+            <p>Coisas que hoje custam tempo de mesa — e que ninguém sente falta de fazer.</p>
+          </header>
+
+          <div class="features">
+            <article class="feature reveal">
+              <h3>Nenhuma peça digitada</h3>
+              <p>
+                A câmera lê a posição de cada miniatura sozinha. Ninguém arrasta token em
+                tela nem anuncia coordenada em voz alta.
+              </p>
+            </article>
+            <article class="feature reveal" data-delay="1">
+              <h3>Terreno que muda na hora</h3>
+              <p>
+                Lava, água, parede e objetivo pintados com um clique no console. A mesa
+                acompanha antes de o jogador terminar a pergunta.
+              </p>
+            </article>
+            <article class="feature reveal" data-delay="2">
+              <h3>O mestre vê o que importa</h3>
+              <p>
+                Quem está em que casa, sobre qual terreno, e quem ficou a uma casa de um
+                inimigo. O registro da sessão se escreve sozinho.
+              </p>
+            </article>
+            <article class="feature reveal" data-delay="3">
+              <h3>Sua mesa continua sua mesa</h3>
+              <p>
+                Jantar, escritório, a da sala. Acabou a sessão, desliga: volta a ser a mesa
+                de sempre, sem vidro no meio.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================== especificações ======================== -->
+      <section class="section" id="specs">
+        <div class="wrap specs-grid">
+          <div>
+            <header class="section-head section-head-left">
+              <h2>Especificações</h2>
+              <p>
+                Metas de projeto do primeiro lote. São decisões de engenharia, ainda não
+                medições de unidade final. Quando medirmos, os números entram aqui com
+                data.
+              </p>
+            </header>
+
+            <dl class="specs">
+              <div><dt>Área projetada</dt><dd>até 120 × 90 cm</dd></div>
+              <div><dt>Altura de instalação</dt><dd>2,2 m a 2,7 m do tampo</dd></div>
+              <div><dt>Grade do tabuleiro</dt><dd>6 × 6 casas (mais formatos no software)</dd></div>
+              <div><dt>Leitura das peças</dt><dd>marcador de 3 cm, até 6 peças simultâneas</dd></div>
+              <div><dt>Conexão</dt><dd>HDMI e USB para o computador do mestre</dd></div>
+              <div><dt>Alimentação</dt><dd>bivolt, tomada comum</dd></div>
+              <div><dt>Corpo</dt><dd>alumínio escovado, braço de teto incluso</dd></div>
+              <div><dt>Software</dt><dd>navegador, sem instalação e sem mensalidade</dd></div>
+            </dl>
+          </div>
+
+          <aside class="box">
+            <h3>O que vem na caixa</h3>
+            <ul class="checklist">
+              <li>Unidade de projeção e leitura</li>
+              <li>Braço de teto e kit de fixação</li>
+              <li>Cabos HDMI e USB de 5 m</li>
+              <li>Cartela com 12 marcadores impressos</li>
+              <li>Guia de instalação e calibração</li>
+            </ul>
+            <p class="box-note">
+              A calibração é feita uma vez: a projeção acende quatro alvos, você clica
+              neles na imagem da câmera e acabou.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============================ preço ============================ -->
+      <section class="section section-tint" id="preco">
+        <div class="wrap">
+          <header class="section-head">
+            <h2>Preço do primeiro lote</h2>
+            <p>
+              Ainda não estamos vendendo. Estes são os valores que pretendemos praticar, e
+              a lista de espera existe para saber se eles fazem sentido para você.
+            </p>
+          </header>
+
+          <div class="plans">
+            <article class="plan plan-featured">
+              <span class="plan-badge">Fundador</span>
+              <h3>Combat Maps One</h3>
+              <p class="plan-price">
+                <small>R$</small>3.990<span>à vista</span>
+              </p>
+              <p class="plan-alt">ou 12× de R$ 372 · preço cheio depois do 1º lote: R$ 4.490</p>
+              <ul class="checklist">
+                <li>Aparelho, braço de teto e cabos</li>
+                <li>Software completo, sem mensalidade</li>
+                <li>Cartela de marcadores</li>
+                <li>Lugar garantido no primeiro lote</li>
+              </ul>
+              <a class="btn btn-primary btn-block" href="#lista">Quero esse preço</a>
+            </article>
+
+            <article class="plan">
+              <h3>Licença para estabelecimento</h3>
+              <p class="plan-price"><small>R$</small>6.990<span>por unidade</span></p>
+              <p class="plan-alt">Loja, clube, bar de jogos e espaço de eventos</p>
+              <ul class="checklist">
+                <li>Uso comercial liberado</li>
+                <li>Garantia estendida de 24 meses</li>
+                <li>Suporte prioritário</li>
+                <li>Desconto por volume a partir de 3 unidades</li>
+              </ul>
+              <a class="btn btn-ghost btn-block" href="#lista">Falar sobre unidades</a>
+            </article>
+
+            <article class="plan plan-free">
+              <h3>Só o software</h3>
+              <p class="plan-price">Grátis</p>
+              <p class="plan-alt">Você usa o seu projetor e a sua webcam</p>
+              <ul class="checklist">
+                <li>Console do mestre completo</li>
+                <li>Tabuleiro projetado e calibração</li>
+                <li>Marcadores para imprimir</li>
+                <li>Sem cadastro</li>
+              </ul>
+              <a class="btn btn-ghost btn-block" href="https://combat-maps.up.railway.app" target="_blank" rel="noopener">
+                Abrir agora
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ lista ============================ -->
+      <section class="waitlist" id="lista">
+        <div class="wrap waitlist-inner">
+          <div class="waitlist-copy">
+            <h2>Entre na lista do primeiro lote</h2>
+            <p>
+              Sem cobrança e sem compromisso. Só precisamos saber quantas pessoas
+              comprariam de verdade, e a que preço, antes de encomendar o primeiro lote
+              de aparelhos.
+            </p>
+            <p class="waitlist-fine">
+              Avisamos por e-mail quando abrir a produção. Nada de newsletter semanal.
+            </p>
+          </div>
+
+          <form class="form" id="form" novalidate>
+            <div class="field">
+              <label for="email">Seu e-mail</label>
+              <input type="email" id="email" name="email" required autocomplete="email"
+                placeholder="voce@exemplo.com.br" />
+              <p class="error" id="err-email" hidden>Precisamos de um e-mail válido para avisar você.</p>
+            </div>
+
+            <fieldset class="field">
+              <legend>Você é</legend>
+              <div class="choices">
+                <label class="choice">
+                  <input type="radio" name="perfil" value="mestre" checked />
+                  <span>Mestre ou jogador</span>
+                </label>
+                <label class="choice">
+                  <input type="radio" name="perfil" value="estabelecimento" />
+                  <span>Loja, clube ou bar</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>A R$ 3.990, você compraria?</legend>
+              <div class="choices choices-stack">
+                <label class="choice">
+                  <input type="radio" name="preco" value="compraria" required />
+                  <span>Compraria pelo preço que está</span>
+                </label>
+                <label class="choice">
+                  <input type="radio" name="preco" value="caro" />
+                  <span>Quero, mas está caro para mim</span>
+                </label>
+                <label class="choice">
+                  <input type="radio" name="preco" value="curioso" />
+                  <span>Só quero acompanhar por enquanto</span>
+                </label>
+              </div>
+              <p class="error" id="err-preco" hidden>Escolha uma das três. É essa resposta que valida o preço.</p>
+            </fieldset>
+
+            <button class="btn btn-primary btn-block" type="submit">Entrar na lista</button>
+            <p class="form-status" id="status" role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- =========================== dúvidas =========================== -->
+      <section class="section" id="duvidas">
+        <div class="wrap faq-wrap">
+          <header class="section-head section-head-left">
+            <h2>Dúvidas honestas</h2>
+          </header>
+
+          <div class="faq">
+            <details>
+              <summary>Quando vocês entregam?</summary>
+              <p>
+                Não temos data. O software está pronto e no ar; o aparelho é protótipo. Só
+                vamos encomendar o primeiro lote quando a lista mostrar que existe gente
+                disposta a comprar — e a primeira coisa que essa lista vai receber é a data,
+                assim que ela existir.
+              </p>
+            </details>
+            <details>
+              <summary>Preciso comprar o aparelho para usar?</summary>
+              <p>
+                Não. O software é gratuito e funciona com qualquer projetor e webcam que
+                você já tenha. O aparelho existe para quem não quer montar essa gambiarra:
+                é uma peça só, com a câmera na posição certa e a calibração pensada para
+                não sair do lugar.
+              </p>
+            </details>
+            <details>
+              <summary>Funciona com as minhas miniaturas?</summary>
+              <p>
+                Sim. Você cola um marcador de papel no topo de cada uma: um adesivo de 3
+                cm, que não modifica a peça e sai depois. Miniatura pintada, impressa em 3D
+                ou tampinha de refrigerante: o sistema não distingue.
+              </p>
+            </details>
+            <details>
+              <summary>E se a mão do jogador tampar a peça?</summary>
+              <p>
+                Nada acontece. O sistema segura a última posição conhecida por pouco mais de
+                um segundo antes de considerar que a peça saiu, tempo de sobra para uma
+                mão passar por cima.
+              </p>
+            </details>
+            <details>
+              <summary>Precisa de sala escura?</summary>
+              <p>
+                Precisa de luz baixa, como qualquer projetor. A câmera, ao contrário,
+                precisa enxergar: uma luminária lateral resolve as duas coisas ao mesmo
+                tempo: a mesa fica legível e a projeção continua viva.
+              </p>
+            </details>
+            <details>
+              <summary>Meus dados vão para onde?</summary>
+              <p>
+                Para um e-mail nosso, e só. Não há cadastro, não há login e o software não
+                envia nada da sua sessão para lugar nenhum — ele roda inteiro dentro do seu
+                navegador.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <img src="assets/logo.svg" alt="Combat Maps" width="110" height="33" />
+        <p>
+          Um projetor, uma câmera e a mesa que vocês já têm.<br />
+          Feito no Brasil por gente que joga.
+        </p>
+        <nav aria-label="Rodapé">
+          <a href="https://combat-maps.up.railway.app" target="_blank" rel="noopener">Software</a>
+          <a href="#specs">Especificações</a>
+          <a href="#lista">Lista de espera</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="main.js"></script>
+  </body>
+</html>
