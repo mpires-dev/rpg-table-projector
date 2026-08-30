@@ -15,6 +15,35 @@ import { AR } from './aruco.js';
 import logoMarkup from './assets/logo.svg?raw';
 
 const SETTINGS_KEY = 'rpg-ar:console:v1';
+const BRIDGE_FALLBACK = 'https://combat-maps.up.railway.app';
+
+/**
+ * Manda um aviso para o servidor. Existe para diagnosticar a mesa de longe:
+ * um erro de JS aqui é invisível para quem não está com o console aberto.
+ * Nunca lança — um relatório que quebra a página é pior que o problema.
+ */
+let avisosEnviados = 0;
+function reportar(tipo, texto) {
+  if (avisosEnviados > 20) return; // não vira metralhadora se algo entrar em laço
+  avisosEnviados++;
+  try {
+    fetch(`${BRIDGE_FALLBACK}/api/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, texto: String(texto).slice(0, 400) }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // sem rede, sem relatório; a mesa continua
+  }
+}
+
+addEventListener('error', (event) => {
+  reportar('erro', `${event.message} @ ${(event.filename || '').split('/').pop()}:${event.lineno}`);
+});
+addEventListener('unhandledrejection', (event) => {
+  reportar('promessa', event.reason?.stack || event.reason?.message || String(event.reason));
+});
 
 const DEFAULT_SETTINGS = {
   onlyKnown: true, // filtro mais eficaz contra "apareceu peça que eu não mostrei"
@@ -1029,6 +1058,7 @@ if (params.has('sim')) {
 }
 
 el.wordmark.insertAdjacentHTML('afterbegin', logoMarkup);
+reportar('abriu', `${location.href} · ${navigator.userAgent.slice(0, 120)}`);
 hydrateIcons();
 renderRoster();
 renderPalette();

@@ -40,6 +40,13 @@ const MIME = {
 
 let boardState = { updatedAt: 0, pieces: [] };
 let lastDiag = null;
+/** Últimos avisos do navegador do mestre — erros de JS e sinais de vida. */
+const clientLog = [];
+
+function pushClientLog(entry) {
+  clientLog.unshift({ ...entry, em: new Date().toISOString() });
+  if (clientLog.length > 25) clientLog.length = 25;
+}
 /** @type {Set<import('node:http').ServerResponse>} */
 const listeners = new Set();
 
@@ -85,6 +92,21 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (pathname === '/api/log' && request.method === 'POST') {
+    try {
+      const parsed = JSON.parse(await readBody(request, 8 * 1024));
+      pushClientLog({
+        tipo: String(parsed?.tipo || 'info').slice(0, 40),
+        texto: String(parsed?.texto || '').slice(0, 500),
+      });
+      console.log('[cliente]', parsed?.tipo, String(parsed?.texto || '').slice(0, 200));
+    } catch {
+      // um relatório malformado não merece derrubar nada
+    }
+    response.writeHead(204, CORS).end();
+    return true;
+  }
+
   if (pathname === '/api/health' && request.method === 'GET') {
     // Diagnóstico da apresentação: diz se o painel chegou até aqui, sem
     // precisar de cabo serial preso na placa.
@@ -101,6 +123,7 @@ async function handleApi(request, response, pathname) {
           ? Math.round((Date.now() - boardState.updatedAt) / 1000)
           : null,
         camera: lastDiag,
+        avisos: clientLog,
       })
     );
     return true;
@@ -123,6 +146,7 @@ async function handleApi(request, response, pathname) {
       // olhar de longe o que a câmera do outro lado está vendo.
       lastDiag = parsed?.diag ?? null;
       broadcast();
+      console.log(`[estado] ${boardState.pieces.length} peca(s)`, JSON.stringify(lastDiag || {}));
       response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ ok: true, pieces: boardState.pieces.length }));
     } catch (error) {
