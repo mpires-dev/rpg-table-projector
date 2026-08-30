@@ -994,7 +994,13 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-if (new URLSearchParams(location.search).has('sim')) {
+const params = new URLSearchParams(location.search);
+if (params.has('cam')) {
+  // ?cam=1 já abre com a câmera ligada.
+  startCamera();
+}
+
+if (params.has('sim')) {
   // ?sim=1 entra direto no modo simulação — para ensaiar a demo sem montar a mesa.
   el.simBtn.click();
 }
