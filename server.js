@@ -29,13 +29,133 @@ const MIME = {
   '.map': 'application/json; charset=utf-8',
 };
 
+/* ------------------------------------------------------------------ ponte
+   O console do mestre publica aqui quem está em cada casa; quem quiser
+   acompanhar (o painel do ESP32, hoje) fica pendurado no SSE.
+
+   Estado em memória de propósito: é a foto da mesa agora, não um histórico.
+   Se o serviço reiniciar no meio da sessão, a próxima publicação do console
+   reconstrói tudo em menos de um segundo.
+   ------------------------------------------------------------------------ */
+
+let boardState = { updatedAt: 0, pieces: [] };
+/** @type {Set<import('node:http').ServerResponse>} */
+const listeners = new Set();
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function broadcast() {
+  const frame = `data: ${JSON.stringify(boardState)}\n\n`;
+  for (const listener of listeners) {
+    // Um cliente morto não pode derrubar a publicação dos outros.
+    try {
+      listener.write(frame);
+    } catch {
+      listeners.delete(listener);
+    }
+  }
+}
+
+function readBody(request, limit = 64 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    request.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        reject(new Error('body grande demais'));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    request.on('error', reject);
+  });
+}
+
+async function handleApi(request, response, pathname) {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204, CORS).end();
+    return true;
+  }
+
+  if (pathname === '/api/state' && request.method === 'GET') {
+    response.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify(boardState));
+    return true;
+  }
+
+  if (pathname === '/api/state' && request.method === 'POST') {
+    try {
+      const parsed = JSON.parse(await readBody(request));
+      boardState = {
+        updatedAt: Date.now(),
+        pieces: Array.isArray(parsed?.pieces) ? parsed.pieces.slice(0, 24) : [],
+      };
+      broadcast();
+      response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: true, pieces: boardState.pieces.length }));
+    } catch (error) {
+      response.writeHead(400, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: false, erro: String(error.message || error) }));
+    }
+    return true;
+  }
+
+  if (pathname === '/api/events' && request.method === 'GET') {
+    response.writeHead(200, {
+      ...CORS,
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      // Sem isto um proxy pode segurar o fluxo esperando encher um buffer.
+      'X-Accel-Buffering': 'no',
+    });
+    response.write('retry: 3000\n\n');
+    response.write(`data: ${JSON.stringify(boardState)}\n\n`);
+
+    listeners.add(response);
+    // Comentário SSE a cada 15s: mantém a conexão viva no proxy do Railway e
+    // avisa o firmware que o servidor continua lá mesmo sem ninguém se mexer.
+    const ping = setInterval(() => {
+      try {
+        response.write(': ping\n\n');
+      } catch {
+        clearInterval(ping);
+        listeners.delete(response);
+      }
+    }, 15000);
+
+    request.on('close', () => {
+      clearInterval(ping);
+      listeners.delete(response);
+    });
+    return true;
+  }
+
+  return false;
+}
+
 const server = createServer(async (request, response) => {
+  const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  if (requestUrl.pathname.startsWith('/api/')) {
+    if (await handleApi(request, response, requestUrl.pathname)) return;
+    response.writeHead(404, { ...CORS, 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ ok: false, erro: 'rota não encontrada' }));
+    return;
+  }
+
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     response.writeHead(405, { Allow: 'GET, HEAD' }).end('Method Not Allowed');
     return;
   }
 
-  const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  const url = requestUrl;
   let pathname = decodeURIComponent(url.pathname);
   if (pathname.endsWith('/')) pathname += 'index.html';
 

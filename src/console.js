@@ -24,6 +24,8 @@ const DEFAULT_SETTINGS = {
   threatCells: 1,
   moveRadius: 2, // em células
   showMoveRadius: false, // ligado, quatro círculos de 2 casas cobrem o mapa inteiro
+  bridgeOn: false,
+  bridgeUrl: 'https://combat-maps.up.railway.app',
 };
 
 const el = {};
@@ -37,7 +39,7 @@ for (const id of [
   'onlyKnown', 'hamming', 'hammingValue', 'confirmFrames', 'confirmValue',
   'procWidth', 'procValue', 'threatCells', 'threatValue', 'showMoveRadius',
   'wordmark', 'markersBtn', 'markersModal', 'markersGrid', 'markersNote',
-  'closeMarkers', 'printMarkers',
+  'closeMarkers', 'printMarkers', 'bridgeOn', 'bridgeStatus',
 ]) {
   el[id] = document.getElementById(id);
 }
@@ -110,6 +112,7 @@ function loop(now) {
   }
 
   publish(now);
+  publishToBridge(now);
   renderPieces();
   renderLog();
 
@@ -810,6 +813,81 @@ el.markersModal.addEventListener('click', (event) => {
     event.clientY >= box.top &&
     event.clientY <= box.bottom;
   if (!inside) el.markersModal.close();
+});
+
+
+/* --------------------------------------------------- ponte externa (ESP32) */
+
+const BRIDGE_MIN_INTERVAL_MS = 400;
+
+/**
+ * Manda para a ponte quem está em cada casa. O painel externo é um espectador:
+ * ele nunca responde nem bloqueia a mesa, então uma falha aqui só acende um
+ * aviso no console e a partida segue.
+ */
+function publishToBridge(now) {
+  if (!settings.bridgeOn || !state.scene) return;
+  if (state.bridge.enviando) return;
+  if (now - state.bridge.lastSent < BRIDGE_MIN_INTERVAL_MS) return;
+
+  const cells = state.scene.cells;
+  const pieces = state.tracks.map((track) => {
+    const entry = roster.get(track.id);
+    const cell = cells.get(track.id);
+    return {
+      id: track.id,
+      name: entry.name,
+      role: entry.role,
+      faction: entry.faction,
+      color: entry.color,
+      cell: cell ? cellLabel(cell) : null,
+      terrain: cell ? board.get(cell.row, cell.col) : null,
+      visible: track.visible,
+    };
+  });
+
+  // Só sai da mesa o que mudou: peça parada não gera tráfego.
+  const payload = JSON.stringify({ pieces });
+  if (payload === state.bridge.lastPayload) return;
+
+  state.bridge.enviando = true;
+  state.bridge.lastSent = now;
+
+  fetch(`${settings.bridgeUrl}/api/state`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload,
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      state.bridge.lastPayload = payload;
+      state.bridge.erro = null;
+    })
+    .catch((error) => {
+      state.bridge.erro = String(error.message || error);
+    })
+    .finally(() => {
+      state.bridge.enviando = false;
+      renderBridgeStatus();
+    });
+}
+
+function renderBridgeStatus() {
+  if (!settings.bridgeOn) {
+    el.bridgeStatus.textContent = 'Envia quem está em cada casa para a ponte.';
+    return;
+  }
+  el.bridgeStatus.textContent = state.bridge.erro
+    ? `Falha ao enviar: ${state.bridge.erro}`
+    : `Enviando para ${settings.bridgeUrl.replace(/^https?:\/\//, '')}`;
+}
+
+el.bridgeOn.checked = settings.bridgeOn;
+el.bridgeOn.addEventListener('change', () => {
+  settings.bridgeOn = el.bridgeOn.checked;
+  state.bridge.lastPayload = ''; // força o próximo envio a sair
+  saveSettings();
+  renderBridgeStatus();
 });
 
 /* ------------------------------------------------------------ ajustes */
