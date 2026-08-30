@@ -349,6 +349,41 @@ bus.on('calib:targets', (payload) => {
 
 bus.send('control:hello', {});
 
+/* ------------------------------------------------- eventos do servidor */
+
+/**
+ * Fica ouvindo o servidor por SSE. Sem isto, uma pincelada dada no painel da
+ * mesa só aparecia aqui no próximo envio de estado — até uns três segundos de
+ * espera para um toque que precisa parecer instantâneo.
+ *
+ * O navegador tem EventSource pronto e reconecta sozinho; foi no firmware que o
+ * SSE não passou pelo proxy, e lá o polling resolve.
+ */
+function ouvirServidor() {
+  if (!settings.bridgeOn || typeof EventSource === 'undefined') return;
+
+  const fonte = new EventSource(`${settings.bridgeUrl}/api/events`);
+
+  fonte.addEventListener('message', (event) => {
+    try {
+      aplicarTerrenoDoServidor(JSON.parse(event.data));
+    } catch {
+      // um quadro malformado não merece derrubar a escuta
+    }
+  });
+
+  fonte.addEventListener('error', () => {
+    // O EventSource se reconecta sozinho; só registramos para o painel de status.
+    state.bridge.erro = 'escuta caiu, reconectando';
+    renderBridgeStatus();
+  });
+
+  fonte.addEventListener('open', () => {
+    state.bridge.erro = null;
+    renderBridgeStatus();
+  });
+}
+
 /* --------------------------------------------------------------- listas */
 
 function emptyState(headline, detail) {
@@ -1011,6 +1046,7 @@ el.bridgeOn.addEventListener('change', () => {
   state.bridge.lastPayload = ''; // força o próximo envio a sair
   saveSettings();
   renderBridgeStatus();
+  if (settings.bridgeOn) ouvirServidor();
 });
 
 /* ------------------------------------------------------------ ajustes */
