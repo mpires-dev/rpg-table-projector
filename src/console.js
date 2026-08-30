@@ -116,6 +116,7 @@ const state = {
   pieceKey: null,
   logRevision: -1,
   bridge: { lastSent: 0, lastPayload: '', lastFullSend: 0, erro: null, enviando: false },
+  taxas: new Map(), // id -> fração dos quadros em que a peça foi lida
   terrainVersion: -1,
   wasRunning: false,
 };
@@ -134,6 +135,8 @@ function loop(now) {
   state.tracks = state.simulating
     ? simulation.getTracks(now)
     : vision.update(now, settings.onlyKnown ? isKnownId : undefined);
+
+  if (!state.simulating) medirTaxaDeLeitura();
 
   drawCameraPreview();
   drawBoardPreview(now);
@@ -160,6 +163,21 @@ function loop(now) {
   if (now - state.lastMetrics > 250) {
     state.lastMetrics = now;
     updateReadout();
+  }
+}
+
+/**
+ * Média móvel de quantos quadros cada peça aparece. "Não lê duas peças" quase
+ * sempre é uma peça específica lendo mal — e sem medir por ID isso fica
+ * invisível, porque o total de lidos oscila entre 1 e 2 e parece aleatório.
+ */
+function medirTaxaDeLeitura() {
+  const lidosAgora = new Set(vision.lastMarkers.map((m) => m.id));
+  for (const id of lidosAgora) {
+    if (!state.taxas.has(id)) state.taxas.set(id, 1);
+  }
+  for (const [id, taxa] of state.taxas) {
+    state.taxas.set(id, taxa * 0.97 + (lidosAgora.has(id) ? 0.03 : 0));
   }
 }
 
@@ -1026,6 +1044,10 @@ function publishToBridge(now) {
     foraDoElenco: vision.tracker.rejectedCount,
     confirmados: state.tracks.length,
     ids: vision.lastMarkers.map((m) => m.id),
+    // quanto de cada peça a câmera consegue ler, em % dos quadros
+    taxas: Object.fromEntries([...state.taxas].map(([id, t]) => [id, Math.round(t * 100)])),
+    resolucao: settings.procWidth,
+    minimo: settings.minMarkerSize,
     soElenco: settings.onlyKnown,
     hamming: settings.maxHamming,
     confirmacao: settings.confirmFrames,
