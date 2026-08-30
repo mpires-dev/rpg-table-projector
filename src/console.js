@@ -648,7 +648,8 @@ function updateProjectorControl() {
   const connected = state.projector.connected;
   el.projectorBtn.setAttribute('aria-pressed', String(connected));
   el.projectorState.textContent = connected ? 'conectada' : 'fechada';
-  el.calibBtn.disabled = !connected && !state.calib.active;
+  // Quem calibra é a câmera: a projeção só acende os alvos como ajuda. Exigir
+  // que ela estivesse aberta era resto da calibração por cliques.
 }
 
 function updateCalibrationControl() {
@@ -880,6 +881,7 @@ function concluirCalibracao() {
   saveHomography(matrix);
   state.matrix = matrix;
   bus.send('homography', { matrix });
+  enviarCalibracao(matrix);
   state.calib = { active: false, amostras: [], erro: null };
   bus.send('calib:stop', {});
   updateCalibrationControl();
@@ -894,9 +896,10 @@ function renderCalibBanner() {
     return;
   }
   const feito = state.calib.amostras.length;
+  const semProjecao = state.projector.connected ? '' : ' (projeção fechada: os alvos não aparecem na mesa)';
   el.calibBanner.textContent =
     feito === 0
-      ? 'Calibrando — ponha uma peça no centro de A1, F1, A6 e F6'
+      ? `Calibrando — ponha uma peça no centro de A1, F1, A6 e F6${semProjecao}`
       : `Calibrando — segurando as quatro peças (${Math.round((feito / CALIB_AMOSTRAS) * 100)}%)`;
 }
 
@@ -916,8 +919,22 @@ el.clearCalib.addEventListener('click', () => {
   clearHomography();
   state.matrix = null;
   bus.send('homography', { matrix: null });
+  enviarCalibracao(null);
   updateCalibrationControl();
 });
+
+/** Guarda a calibração no servidor, para alcançar projeções fora deste navegador. */
+function enviarCalibracao(matrix) {
+  if (!settings.bridgeOn) return;
+  fetch(`${settings.bridgeUrl}/api/calibration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ matrix }),
+  }).catch((error) => {
+    state.bridge.erro = String(error.message || error);
+    renderBridgeStatus();
+  });
+}
 
 /* ------------------------------------------------------------- elenco */
 

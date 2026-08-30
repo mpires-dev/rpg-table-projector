@@ -50,6 +50,13 @@ let lastDiag = null;
 let terrain = {};
 let terrainVersion = 0;
 
+/**
+ * A calibração também mora aqui. Pelo canal local ela só alcança abas do mesmo
+ * navegador; guardada no servidor, uma projeção em outra máquina recebe igual.
+ */
+let calibration = null;
+let calibrationVersion = 0;
+
 const TERRENOS = new Set(['normal', 'difficult', 'water', 'lava', 'wall', 'objective']);
 /** Últimos avisos do navegador do mestre — erros de JS e sinais de vida. */
 const clientLog = [];
@@ -68,7 +75,7 @@ const CORS = {
 };
 
 function estadoCompleto() {
-  return { ...boardState, terrain, terrainVersion };
+  return { ...boardState, terrain, terrainVersion, calibration, calibrationVersion };
 }
 
 function broadcast() {
@@ -104,6 +111,26 @@ function readBody(request, limit = 64 * 1024) {
 async function handleApi(request, response, pathname) {
   if (request.method === 'OPTIONS') {
     response.writeHead(204, CORS).end();
+    return true;
+  }
+
+  if (pathname === '/api/calibration' && request.method === 'POST') {
+    try {
+      const parsed = JSON.parse(await readBody(request));
+      const m = parsed?.matrix;
+      const valida = m === null || (Array.isArray(m) && m.length === 9 && m.every(Number.isFinite));
+      if (!valida) throw new Error('matriz invalida');
+
+      calibration = m;
+      calibrationVersion++;
+      broadcast();
+      console.log(`[calibracao] v${calibrationVersion}`, m ? 'gravada' : 'limpa');
+      response.writeHead(200, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: true, calibrationVersion }));
+    } catch (error) {
+      response.writeHead(400, { ...CORS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: false, erro: String(error.message || error) }));
+    }
     return true;
   }
 
