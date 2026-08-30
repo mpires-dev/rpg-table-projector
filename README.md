@@ -7,6 +7,12 @@ app sabe qual peça é, em que casa ela está e para onde está virada.
 Roda 100% no navegador: Vite + Canvas 2D + [js-aruco2](https://github.com/damianofalcioni/js-aruco2)
 (vendorizado em `src/vendor/`, MIT). Sem servidor, sem WASM, sem build pesado.
 
+**No ar:** https://rpg-table-projector-production.up.railway.app
+
+Em produção quem serve o build é o `server.js` — http nativo do Node, sem
+dependências: o app é estático, e uma biblioteca a mais aqui seria superfície de
+atualização de segurança para nada.
+
 ## As três telas
 
 | Rota | Onde fica | Papel |
